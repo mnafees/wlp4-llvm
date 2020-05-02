@@ -12,6 +12,11 @@ void Scanner::scanFileForTokens(const char* name) {
     std::string token;
     if (fs.is_open()) {
         while (fs >> token) {
+            bool endsWithSemi = false;
+            if (token[token.length()-1] == ';') {
+                endsWithSemi = true;
+                token = token.substr(0, token.length()-1);
+            }
             if (token == "(") {
                 _symbols.push_back(std::make_pair(tok_lparen, token));
             } else if (token == ")") {
@@ -80,16 +85,21 @@ void Scanner::scanFileForTokens(const char* name) {
                 _symbols.push_back(std::make_pair(tok_num, token));
             } else if (token[0] >= '1' && token[0] <= '9') {
                 // Could be a tok_num
-                try {
-                    std::stoi(token);
-                    _symbols.push_back(std::make_pair(tok_num, token));
-                } catch (std::exception& e) {
-                    // Error recognising possible tok_num
-                    throw std::runtime_error("Invalid token " + token);
+                for (auto& c : token) {
+                    if (!isdigit(c)) {
+                        throw std::logic_error("Invalid token " + token);
+                    }
                 }
+                if (std::stol(token) > INT32_MAX) {
+                    throw std::logic_error("Number value exceeds the maximum allowed limit");
+                }
+                _symbols.push_back(std::make_pair(tok_num, token));
             } else {
                 // Unknown token
                 throw std::runtime_error("Unknown token " + token);
+            }
+            if (endsWithSemi) {
+                _symbols.push_back(std::make_pair(tok_semi, ";"));
             }
         }
         fs.close();
