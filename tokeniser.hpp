@@ -1,5 +1,5 @@
-#ifndef __WLP4_LLVM_SCANNER
-#define __WLP4_LLVM_SCANNER
+#ifndef __WLP4_LLVM_TOKENISER
+#define __WLP4_LLVM_TOKENISER
 
 #include <string>
 #include <vector>
@@ -42,14 +42,19 @@ enum Token {
 
 namespace wlp4 {
 
-class Scanner {
+class Tokeniser {
 public:
+    Tokeniser() : _currentTokenIdx(0) {}
+
     void scanFileForTokens(const char* name);
+    bool hasNextToken() const;
+    const std::pair<Token, std::string>& nextToken();
 
 private:
     std::vector<std::pair<Token, std::string>> _symbols;
+    size_t _currentTokenIdx;
 };
 
 } // namespace wlp4
 
-#endif // __WLP4_LLVM_SCANNER
+#endif // __WLP4_LLVM_TOKENISER
