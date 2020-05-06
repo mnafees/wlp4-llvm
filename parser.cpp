@@ -3,6 +3,7 @@
 namespace wlp4 {
 
 void Parser::parseTokens(Tokeniser* tokeniser) {
+    tokeniser->resetTokenHead();
     while (tokeniser->hasNextToken()) {
         auto tokenPair = tokeniser->nextToken();
         switch (tokenPair.first) {

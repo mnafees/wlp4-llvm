@@ -47,6 +47,7 @@ public:
     Tokeniser() : _currentTokenIdx(0) {}
 
     void scanFileForTokens(const char* name);
+    void resetTokenHead();
     bool hasNextToken() const;
     const std::pair<Token, std::string>& nextToken();
 
