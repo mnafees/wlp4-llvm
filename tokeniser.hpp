@@ -46,10 +46,10 @@ class Tokeniser {
 public:
     Tokeniser() : _currentTokenIdx(0) {}
 
-    void scanFileForTokens(const char* name);
+    void scanFileForTokens(const char* name) noexcept(false);
     void resetTokenHead();
     bool hasNextToken() const;
-    const std::pair<Token, std::string>& nextToken();
+    const std::pair<Token, std::string>& nextToken() noexcept(false);
 
 private:
     std::vector<std::pair<Token, std::string>> _symbols;

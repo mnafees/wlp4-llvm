@@ -3,11 +3,23 @@
 
 #include "tokeniser.hpp"
 
+#include <map>
+
 namespace wlp4 {
 
 class Parser {
 public:
-    void parseTokens(Tokeniser* tokeniser);
+    Parser();
+
+    void createAST(Tokeniser* tokeniser);
+
+private:
+    void constructCFGTable() noexcept(false);
+    bool isTerminal(const std::string& sym) const;
+
+    const std::string _startSym;
+    std::map<Token, std::string> _tokenToTerminal;
+    std::multimap<std::string, std::vector<std::string>> _cfg;
 };
 
 } // namespace wlp4

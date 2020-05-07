@@ -14,7 +14,7 @@ int main(int argc, const char* argv[]) {
             tokeniser.scanFileForTokens(argv[i]);
         }
         wlp4::Parser parser;
-        parser.parseTokens(&tokeniser);
+        parser.createAST(&tokeniser);
     } catch (std::exception& e) {
         std::cerr << "wlp4c: " << e.what() << std::endl
                   << "compilation terminated." << std::endl;

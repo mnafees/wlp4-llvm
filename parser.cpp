@@ -1,11 +1,58 @@
 #include "parser.hpp"
 
+#include <fstream>
+#include <sstream>
+#include <map>
+
 namespace wlp4 {
 
-void Parser::parseTokens(Tokeniser* tokeniser) {
+Parser::Parser() :
+    _startSym("procedures")
+{
+    _tokenToTerminal[tok_id] = "ID";
+    _tokenToTerminal[tok_num] = "NUM";
+    _tokenToTerminal[tok_lparen] = "LPAREN";
+    _tokenToTerminal[tok_rparen] = "RPAREN";
+    _tokenToTerminal[tok_lbrace] = "LBRACE";
+    _tokenToTerminal[tok_rbrace] = "RBRACE";
+    _tokenToTerminal[tok_return] = "RETURN";
+    _tokenToTerminal[tok_if] = "IF";
+    _tokenToTerminal[tok_else] = "ELSE";
+    _tokenToTerminal[tok_while] = "WHILE";
+    _tokenToTerminal[tok_println] = "PRINTLN";
+    _tokenToTerminal[tok_wain] = "WAIN";
+    _tokenToTerminal[tok_becomes] = "BECOMES";
+    _tokenToTerminal[tok_int] = "INT";
+    _tokenToTerminal[tok_eq] = "EQ";
+    _tokenToTerminal[tok_ne] = "NE";
+    _tokenToTerminal[tok_lt] = "LT";
+    _tokenToTerminal[tok_gt] = "GT";
+    _tokenToTerminal[tok_le] = "LE";
+    _tokenToTerminal[tok_ge] = "GE";
+    _tokenToTerminal[tok_plus] = "PLUS";
+    _tokenToTerminal[tok_minus] = "MINUS";
+    _tokenToTerminal[tok_star] = "STAR";
+    _tokenToTerminal[tok_slash] = "SLASH";
+    _tokenToTerminal[tok_pct] = "PCT";
+    _tokenToTerminal[tok_comma] = "COMMA";
+    _tokenToTerminal[tok_semi] = "SEMI";
+    _tokenToTerminal[tok_new] = "NEW";
+    _tokenToTerminal[tok_delete] = "DELETE";
+    _tokenToTerminal[tok_lbrack] = "LBRACK";
+    _tokenToTerminal[tok_rbrack] = "RBRACK";
+    _tokenToTerminal[tok_amp] = "AMP";
+    _tokenToTerminal[tok_null] = "NULL";
+}
+
+void Parser::createAST(Tokeniser* tokeniser) {
+    if (_cfg.empty()) {
+        constructCFGTable();
+    }
+
     tokeniser->resetTokenHead();
+    std::string nonTerminalSym = _startSym;
     while (tokeniser->hasNextToken()) {
-        auto tokenPair = tokeniser->nextToken();
+        const auto& tokenPair = tokeniser->nextToken();
         switch (tokenPair.first) {
             case tok_id: break;
             case tok_num: break;
@@ -42,6 +89,36 @@ void Parser::parseTokens(Tokeniser* tokeniser) {
             case tok_null: break;
         }
     }
+}
+
+void Parser::constructCFGTable() {
+    std::ifstream fs("syntax.cfg");
+    if (fs.is_open()) {
+        std::string line;
+        std::string first;
+        std::string word;
+        while (std::getline(fs, line)) {
+            std::istringstream ss(line);
+            ss >> first;
+            std::vector<std::string> values;
+            while (ss >> word) {
+                values.push_back(word);
+            }
+            _cfg.insert(std::make_pair(first, std::move(values)));
+        }
+    } else {
+        throw std::runtime_error("Could not open syntax.cfg");
+    }
+}
+
+bool Parser::isTerminal(const std::string& sym) const {
+    for (auto& ch : sym) {
+        if (!isupper(ch)) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 } // namespace wlp4

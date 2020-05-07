@@ -151,7 +151,7 @@ void Tokeniser::resetTokenHead() {
 }
 
 bool Tokeniser::hasNextToken() const {
-    return _currentTokenIdx >= 0 && _currentTokenIdx < _symbols.size()-1;
+    return !_symbols.empty() && _currentTokenIdx >= 0 && _currentTokenIdx < _symbols.size()-1;
 }
 
 const std::pair<Token, std::string>& Tokeniser::nextToken() {
