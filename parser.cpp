@@ -50,9 +50,15 @@ void Parser::createAST(Tokeniser* tokeniser) {
     }
 
     tokeniser->resetTokenHead();
-    std::string nonTerminalSym = _startSym;
+    std::string sym = std::move(_startSym);
     while (tokeniser->hasNextToken()) {
         const auto& tokenPair = tokeniser->nextToken();
+
+        auto it = _cfg.find(sym);
+        for (; it != _cfg.end(); ++it) {
+
+        }
+
         switch (tokenPair.first) {
             case tok_id: break;
             case tok_num: break;
@@ -112,13 +118,7 @@ void Parser::constructCFGTable() {
 }
 
 bool Parser::isTerminal(const std::string& sym) const {
-    for (auto& ch : sym) {
-        if (!isupper(ch)) {
-            return false;
-        }
-    }
-
-    return true;
+    return isupper(sym[0]);
 }
 
 } // namespace wlp4
