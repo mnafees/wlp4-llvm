@@ -2,24 +2,27 @@
 #define __WLP4_LLVM_PARSER
 
 #include "tokeniser.hpp"
+#include "ast/procedure.hpp"
 
 #include <map>
+#include <memory>
+#include <vector>
 
 namespace wlp4 {
 
 class Parser {
 public:
-    Parser();
+    Parser(Tokeniser *tokeniser);
 
-    void createAST(Tokeniser* tokeniser);
+    void parseTokens(std::vector<std::unique_ptr<ast::Procedure>>& procedures);
 
 private:
-    void constructCFGTable() noexcept(false);
-    bool isTerminal(const std::string& sym) const;
+    std::unique_ptr<ast::Procedure> parseProcedure();
+    std::unique_ptr<ast::Dcl> parseDcl();
 
-    const std::string _startSym;
-    std::map<Token, std::string> _tokenToTerminal;
-    std::multimap<std::string, std::vector<std::string>> _cfg;
+    Tokeniser *_tokeniser;
+    std::map<int, std::string> _tokenToTerminal;
+    std::vector<std::string> _procedureNames;
 };
 
 } // namespace wlp4

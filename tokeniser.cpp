@@ -3,6 +3,7 @@
 #include <exception>
 #include <fstream>
 #include <stdexcept>
+#include <iostream>
 
 namespace wlp4 {
 
@@ -11,79 +12,83 @@ void Tokeniser::scanFileForTokens(const char* name) {
     if (fs.is_open()) {
         unsigned char ch = fs.get();
         std::string constructedToken;
+        int col = 1;
+        int line = 1;
         while (!fs.eof()) {
             if (isspace(ch)) {
+                if (ch == '\n') {
+                    line++;
+                    col = 1;
+                }
                 ch = fs.get();
                 continue;
             } else if (ch == '(') {
-                _symbols.push_back(std::make_pair(tok_lparen, "("));
+                _symbols.push_back(Token{tok_lparen, col, line, "("});
             } else if (ch == ')') {
-                _symbols.push_back(std::make_pair(tok_rparen, ")"));
+                _symbols.push_back(Token{tok_rparen, col, line, ")"});
             } else if (ch == '{') {
-                _symbols.push_back(std::make_pair(tok_lbrace, "{"));
+                _symbols.push_back(Token{tok_lbrace, col, line, "{"});
             } else if (ch == '}') {
-                _symbols.push_back(std::make_pair(tok_rbrace, "}"));
+                _symbols.push_back(Token{tok_rbrace, col, line, "}"});
             } else if (ch == '+') {
-                _symbols.push_back(std::make_pair(tok_plus, "+"));
+                _symbols.push_back(Token{tok_plus, col, line, "+"});
             } else if (ch == '-') {
-                _symbols.push_back(std::make_pair(tok_minus, "-"));
+                _symbols.push_back(Token{tok_minus, col, line, "-"});
             } else if (ch == '*') {
-                _symbols.push_back(std::make_pair(tok_star, "*"));
+                _symbols.push_back(Token{tok_star, col, line, "*"});
             } else if (ch == '%') {
-                _symbols.push_back(std::make_pair(tok_pct, "%"));
+                _symbols.push_back(Token{tok_pct, col, line, "%"});
             } else if (ch == ',') {
-                _symbols.push_back(std::make_pair(tok_comma, ","));
+                _symbols.push_back(Token{tok_comma, col, line, ","});
             } else if (ch == ';') {
-                _symbols.push_back(std::make_pair(tok_semi, ";"));
+                _symbols.push_back(Token{tok_semi, col, line, ";"});
             } else if (ch == '[') {
-                _symbols.push_back(std::make_pair(tok_lbrack, "["));
+                _symbols.push_back(Token{tok_lbrack, col, line, "["});
             } else if (ch == ']') {
-                _symbols.push_back(std::make_pair(tok_rbrack, "]"));
+                _symbols.push_back(Token{tok_rbrack, col, line, "]"});
             } else if (ch == '&') {
-                _symbols.push_back(std::make_pair(tok_amp, "&"));
+                _symbols.push_back(Token{tok_amp, col, line, "&"});
             } else if (ch == '/') {
                 ch = fs.get();
                 if (ch == '/') {
                     ch = fs.get();
-                    std::string comment;
                     while (ch != '\n' && !fs.eof()) {
-                        comment += ch;
                         ch = fs.get();
                     }
                     fs.unget();
                 } else {
-                    _symbols.push_back(std::make_pair(tok_slash, "/"));
+                    _symbols.push_back(Token{tok_slash, col, line, "/"});
                     fs.unget();
                 }
             } else if (ch == '=') {
                 ch = fs.get();
                 if (ch == '=') {
-                    _symbols.push_back(std::make_pair(tok_becomes, "=="));
+                    _symbols.push_back(Token{tok_eq, col, line, "=="});
                 } else {
-                    _symbols.push_back(std::make_pair(tok_becomes, "="));
+                    _symbols.push_back(Token{tok_becomes, col, line, "="});
                     fs.unget();
                 }
             } else if (ch == '!') {
                 ch = fs.get();
                 if (ch == '=') {
-                    _symbols.push_back(std::make_pair(tok_ne, "!="));
+                    _symbols.push_back(Token{tok_ne, col, line, "!="});
                 } else {
-                    throw std::logic_error("Invalid token");
+                    throw std::logic_error("Invalid token"); // FIXME: More descriptive error message
                 }
             } else if (ch == '<') {
                 ch = fs.get();
                 if (ch == '=') {
-                    _symbols.push_back(std::make_pair(tok_le, "<="));
+                    _symbols.push_back(Token{tok_le, col, line, "<="});
                 } else {
-                    _symbols.push_back(std::make_pair(tok_lt, "<"));
+                    _symbols.push_back(Token{tok_lt, col, line, "<"});
                     fs.unget();
                 }
             } else if (ch == '>') {
                 ch = fs.get();
                 if (ch == '=') {
-                    _symbols.push_back(std::make_pair(tok_ge, ">="));
+                    _symbols.push_back(Token{tok_ge, col, line, ">="});
                 } else {
-                    _symbols.push_back(std::make_pair(tok_gt, ">"));
+                    _symbols.push_back(Token{tok_gt, col, line, ">"});
                     fs.unget();
                 }
             } else if (isalpha(ch)) {
@@ -95,29 +100,29 @@ void Tokeniser::scanFileForTokens(const char* name) {
                 }
                 fs.unget();
                 if (constructedToken == "return") {
-                    _symbols.push_back(std::make_pair(tok_return, constructedToken));
+                    _symbols.push_back(Token{tok_return, col, line, constructedToken});
                 } else if (constructedToken == "if") {
-                    _symbols.push_back(std::make_pair(tok_if, constructedToken));
+                    _symbols.push_back(Token{tok_if, col, line, constructedToken});
                 } else if (constructedToken == "else") {
-                    _symbols.push_back(std::make_pair(tok_else, constructedToken));
+                    _symbols.push_back(Token{tok_else, col, line, constructedToken});
                 } else if (constructedToken == "while") {
-                    _symbols.push_back(std::make_pair(tok_while, constructedToken));
+                    _symbols.push_back(Token{tok_while, col, line, constructedToken});
                 } else if (constructedToken == "println") {
-                    _symbols.push_back(std::make_pair(tok_println, constructedToken));
+                    _symbols.push_back(Token{tok_println, col, line, constructedToken});
                 } else if (constructedToken == "wain") {
-                    _symbols.push_back(std::make_pair(tok_wain, constructedToken));
+                    _symbols.push_back(Token{tok_wain, col, line, constructedToken});
                 } else if (constructedToken == "int") {
-                    _symbols.push_back(std::make_pair(tok_int, constructedToken));
+                    _symbols.push_back(Token{tok_int, col, line, constructedToken});
                 } else if (constructedToken == "new") {
-                    _symbols.push_back(std::make_pair(tok_new, constructedToken));
+                    _symbols.push_back(Token{tok_new, col, line, constructedToken});
                 } else if (constructedToken == "delete") {
-                    _symbols.push_back(std::make_pair(tok_delete, constructedToken));
+                    _symbols.push_back(Token{tok_delete, col, line, constructedToken});
                 } else if (constructedToken == "NULL") {
-                    _symbols.push_back(std::make_pair(tok_null, constructedToken));
+                    _symbols.push_back(Token{tok_null, col, line, constructedToken});
                 } else {
-                    _symbols.push_back(std::make_pair(tok_id, constructedToken));
+                    _symbols.push_back(Token{tok_id, col, line, constructedToken});
                 }
-
+                col += constructedToken.length();
                 constructedToken.clear();
             } else if (isdigit(ch)) {
                 constructedToken += ch;
@@ -133,13 +138,15 @@ void Tokeniser::scanFileForTokens(const char* name) {
                 if (std::stol(constructedToken) > INT32_MAX) {
                     throw std::logic_error("Number value exceeds the maximum allowed limit");
                 }
-                _symbols.push_back(std::make_pair(tok_num, constructedToken));
+                col += constructedToken.length();
+                _symbols.push_back(Token{tok_num, col, line, constructedToken});
 
                 constructedToken.clear();
             } else {
                 throw std::logic_error("Unknown token");
             }
             ch = fs.get();
+            col++;
         }
     } else {
         throw std::runtime_error("Could not open source file: " + std::string(name));
@@ -154,11 +161,21 @@ bool Tokeniser::hasNextToken() const {
     return !_symbols.empty() && _currentTokenIdx >= 0 && _currentTokenIdx < _symbols.size()-1;
 }
 
-const std::pair<Token, std::string>& Tokeniser::nextToken() {
+const Token& Tokeniser::nextToken() {
     if (_currentTokenIdx >= _symbols.size()) {
         throw std::range_error("Trying to get token out of index");
     }
+#ifdef DEBUG
+    std::cout << "Next token: " << _symbols[_currentTokenIdx].value << std::endl;
+#endif
     return _symbols[_currentTokenIdx++];
+}
+
+void Tokeniser::backupToken() {
+    if (_currentTokenIdx == 0) {
+        throw std::range_error("Cannot go backup a token");
+    }
+    _currentTokenIdx--;
 }
 
 } // namespace wlp4

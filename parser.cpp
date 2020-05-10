@@ -3,11 +3,12 @@
 #include <fstream>
 #include <sstream>
 #include <map>
+#include <stdexcept>
 
 namespace wlp4 {
 
-Parser::Parser() :
-    _startSym("procedures")
+Parser::Parser(Tokeniser *tokeniser) :
+    _tokeniser(tokeniser)
 {
     _tokenToTerminal[tok_id] = "ID";
     _tokenToTerminal[tok_num] = "NUM";
@@ -44,81 +45,84 @@ Parser::Parser() :
     _tokenToTerminal[tok_null] = "NULL";
 }
 
-void Parser::createAST(Tokeniser* tokeniser) {
-    if (_cfg.empty()) {
-        constructCFGTable();
-    }
-
-    tokeniser->resetTokenHead();
-    std::string sym = std::move(_startSym);
-    while (tokeniser->hasNextToken()) {
-        const auto& tokenPair = tokeniser->nextToken();
-
-        auto it = _cfg.find(sym);
-        for (; it != _cfg.end(); ++it) {
-
-        }
-
-        switch (tokenPair.first) {
-            case tok_id: break;
-            case tok_num: break;
-            case tok_lparen: break;
-            case tok_rparen: break;
-            case tok_lbrace: break;
-            case tok_rbrace: break;
-            case tok_return: break;
-            case tok_if: break;
-            case tok_else: break;
-            case tok_while: break;
-            case tok_println: break;
-            case tok_wain: break;
-            case tok_becomes: break;
-            case tok_int: break;
-            case tok_eq: break;
-            case tok_ne: break;
-            case tok_lt: break;
-            case tok_gt: break;
-            case tok_le: break;
-            case tok_ge: break;
-            case tok_plus: break;
-            case tok_minus: break;
-            case tok_star: break;
-            case tok_slash: break;
-            case tok_pct: break;
-            case tok_comma: break;
-            case tok_semi: break;
-            case tok_new: break;
-            case tok_delete: break;
-            case tok_lbrack: break;
-            case tok_rbrack: break;
-            case tok_amp: break;
-            case tok_null: break;
-        }
+void Parser::parseTokens(std::vector<std::unique_ptr<ast::Procedure>>& procedures) {
+    _tokeniser->resetTokenHead();
+    while (_tokeniser->hasNextToken()) {
+        auto procedure = parseProcedure();
+        procedures.push_back(std::move(procedure));
     }
 }
 
-void Parser::constructCFGTable() {
-    std::ifstream fs("syntax.cfg");
-    if (fs.is_open()) {
-        std::string line;
-        std::string first;
-        std::string word;
-        while (std::getline(fs, line)) {
-            std::istringstream ss(line);
-            ss >> first;
-            std::vector<std::string> values;
-            while (ss >> word) {
-                values.push_back(word);
-            }
-            _cfg.insert(std::make_pair(first, std::move(values)));
+void throwInvalidToken(const Token& token) {
+    throw std::runtime_error("Parse error. Invalid token '" + token.value + "' at " + std::to_string(token.line) + ":" + std::to_string(token.col));
+}
+
+std::unique_ptr<ast::Procedure> Parser::parseProcedure() {
+    auto token = _tokeniser->nextToken();
+    if (token.type != tok_int) {
+        throwInvalidToken(token);
+    }
+    token = _tokeniser->nextToken();
+    if (token.type != tok_id && token.type != tok_wain) {
+        throwInvalidToken(token);
+    }
+    std::unique_ptr<ast::Procedure> procedure(new ast::Procedure(token.value));
+    if (std::find(_procedureNames.begin(), _procedureNames.end(), procedure->name()) != _procedureNames.end()) {
+        throw std::runtime_error("Redeclaration of procedure: " + procedure->name());
+    } else if (!procedure->isWain() && std::find(_procedureNames.begin(), _procedureNames.end(), "wain") !=
+        _procedureNames.end()) {
+        // wain should always be declared as the last function
+        throw std::runtime_error("wain should always be the last declared procedure");
+    }
+    token = _tokeniser->nextToken();
+    if (token.type != tok_lparen) {
+        throwInvalidToken(token);
+    }
+    token = _tokeniser->nextToken();
+    if (procedure->isWain()) {
+        // We need two params
+        _tokeniser->backupToken();
+        auto dcl = parseDcl();
+        procedure->addParam(std::move(dcl));
+        token = _tokeniser->nextToken();
+        if (token.type != tok_comma) {
+            throwInvalidToken(token);
         }
+        dcl = parseDcl();
+        procedure->addParam(std::move(dcl));
     } else {
-        throw std::runtime_error("Could not open syntax.cfg");
+        // We can have zero or more params
     }
+    token = _tokeniser->nextToken();
+    if (token.type != tok_rparen) {
+        throwInvalidToken(token);
+    }
+    token = _tokeniser->nextToken();
+    if (token.type != tok_lbrace) {
+        throwInvalidToken(token);
+    }
+
+    return procedure;
 }
 
-bool Parser::isTerminal(const std::string& sym) const {
-    return isupper(sym[0]);
+std::unique_ptr<ast::Dcl> Parser::parseDcl() {
+    auto token = _tokeniser->nextToken();
+    if (token.type != tok_int) {
+        throwInvalidToken(token);
+    }
+    token = _tokeniser->nextToken();
+    ast::Type type = ast::Type::INT;
+    if (token.type == tok_star) {
+        type = ast::Type::INT_STAR;
+        token = _tokeniser->nextToken();
+        if (token.type != tok_id) {
+            throwInvalidToken(token);
+        }
+        return std::make_unique<ast::Dcl>(type, token.value);
+    } else if (token.type == tok_id) {
+        return std::make_unique<ast::Dcl>(type, token.value);
+    }
+    throwInvalidToken(token);
 }
 
 } // namespace wlp4

@@ -4,7 +4,14 @@
 #include <string>
 #include <vector>
 
-enum Token {
+struct Token {
+    int type;
+    int col;
+    int line;
+    std::string value;
+};
+
+enum {
     tok_id = 0,
     tok_num,
     tok_lparen,
@@ -49,10 +56,11 @@ public:
     void scanFileForTokens(const char* name) noexcept(false);
     void resetTokenHead();
     bool hasNextToken() const;
-    const std::pair<Token, std::string>& nextToken() noexcept(false);
+    const Token& nextToken() noexcept(false);
+    void backupToken() noexcept(false);
 
 private:
-    std::vector<std::pair<Token, std::string>> _symbols;
+    std::vector<Token> _symbols;
     size_t _currentTokenIdx;
 };
 

@@ -1,9 +1,14 @@
-#include "ast/idAST.hpp"
+#include "ast/procedure.hpp"
+#include "ast/dcl.hpp"
 
-namespace wlp4 {
+namespace wlp4::ast {
 
-llvm::Value* IdAST::codegen() {
+llvm::Value* Procedure::codegen() {
     return nullptr;
 }
 
-} // namespace wlp4
+llvm::Value* Dcl::codegen() {
+    return nullptr;
+}
+
+} // namespace wlp4::ast
