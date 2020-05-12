@@ -171,7 +171,7 @@ const Token& Tokeniser::nextToken() {
     return _symbols[_currentTokenIdx++];
 }
 
-void Tokeniser::backupToken() {
+void Tokeniser::backUpToken() {
     if (_currentTokenIdx == 0) {
         throw std::range_error("Cannot go backup a token");
     }

@@ -57,7 +57,7 @@ public:
     void resetTokenHead();
     bool hasNextToken() const;
     const Token& nextToken() noexcept(false);
-    void backupToken() noexcept(false);
+    void backUpToken() noexcept(false);
 
 private:
     std::vector<Token> _symbols;
