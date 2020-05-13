@@ -7,8 +7,12 @@
 
 namespace wlp4 {
 
-void Tokeniser::scanFileForTokens(const char* name) {
-    std::ifstream fs(name);
+Tokeniser::Tokeniser()
+    : _currentTokenIdx(0)
+{}
+
+void Tokeniser::scanFileForTokens(const char* filename) {
+    std::ifstream fs(filename);
     if (fs.is_open()) {
         unsigned char ch = fs.get();
         std::string constructedToken;
@@ -149,7 +153,7 @@ void Tokeniser::scanFileForTokens(const char* name) {
             col++;
         }
     } else {
-        throw std::runtime_error("Could not open source file: " + std::string(name));
+        throw std::runtime_error("Could not open source file: " + std::string(filename));
     }
 }
 

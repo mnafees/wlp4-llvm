@@ -4,8 +4,13 @@
 #include <sstream>
 #include <map>
 #include <stdexcept>
+#include <iostream>
 
 namespace wlp4 {
+
+Parser::Parser(std::unique_ptr<Tokeniser>& tokeniser) :
+    _tokeniser(tokeniser)
+{}
 
 void Parser::parseTokens(std::vector<std::unique_ptr<ast::Procedure>>& procedures) {
     _tokeniser->resetTokenHead();
@@ -43,12 +48,12 @@ std::unique_ptr<ast::Procedure> Parser::parseProcedure() {
     }
     if (procedure->isWain()) {
         // We need two params
-        parseProcedureParam(procedure);
+        parseDcl(procedure, true);
         token = _tokeniser->nextToken();
         if (token.type != tok_comma) {
             throwInvalidToken(token);
         }
-        parseProcedureParam(procedure);
+        parseDcl(procedure, true);
         token = _tokeniser->nextToken();
         if (token.type != tok_rparen) {
             throwInvalidToken(token);
@@ -59,7 +64,7 @@ std::unique_ptr<ast::Procedure> Parser::parseProcedure() {
         if (token.type != tok_rparen) {
             _tokeniser->backUpToken();
             while (true) {
-                parseProcedureParam(procedure);
+                parseDcl(procedure, true);
                 token = _tokeniser->nextToken();
                 if (token.type == tok_rparen) {
                     break;
@@ -78,21 +83,23 @@ std::unique_ptr<ast::Procedure> Parser::parseProcedure() {
     while (token.type == tok_int) {
         // We can expect one or more declarations
         _tokeniser->backUpToken();
-        parseDeclaration(procedure);
+        parseDcl(procedure);
         token = _tokeniser->nextToken();
     }
-    if (token.type == tok_id || token.type == tok_if || token.type == tok_while ||
-        token.type == tok_println || token.type == tok_delete) {
-        // We can expect one or more statements
+
+    while (token.type != tok_return) {
         _tokeniser->backUpToken();
-    } else {
-        _tokeniser->backUpToken();
+        parseStatement(procedure);
+        token = _tokeniser->nextToken();
     }
 
-    token = _tokeniser->nextToken();
-    if (token.type != tok_return) {
-        throwInvalidToken(token);
-    }
+    // if (token.type == tok_id || token.type == tok_if || token.type == tok_while ||
+    //     token.type == tok_println || token.type == tok_delete) {
+    //     // We can expect one or more statements
+    //     _tokeniser->backUpToken();
+    // } else {
+    //     _tokeniser->backUpToken();
+    // }
 
     token = _tokeniser->nextToken();
     if (token.type != tok_rbrace) {
@@ -102,24 +109,7 @@ std::unique_ptr<ast::Procedure> Parser::parseProcedure() {
     return procedure;
 }
 
-void Parser::parseProcedureParam(std::unique_ptr<ast::Procedure>& procedure) {
-    auto token = _tokeniser->nextToken();
-    if (token.type != tok_int) {
-        throwInvalidToken(token);
-    }
-    token = _tokeniser->nextToken();
-    if (token.type == tok_star) {
-        token = _tokeniser->nextToken();
-        if (token.type != tok_id) {
-            throwInvalidToken(token);
-        }
-        procedure->addParam(std::make_unique<ast::Dcl>(ast::Type::INT_STAR, token.value));
-    } else if (token.type == tok_id) {
-        procedure->addParam(std::make_unique<ast::Dcl>(ast::Type::INT, token.value));
-    }
-}
-
-void Parser::parseDeclaration(std::unique_ptr<ast::Procedure>& procedure) {
+void Parser::parseDcl(std::unique_ptr<ast::Procedure>& procedure, bool isParam) {
     auto token = _tokeniser->nextToken();
     if (token.type != tok_int) {
         throwInvalidToken(token);
@@ -137,27 +127,36 @@ void Parser::parseDeclaration(std::unique_ptr<ast::Procedure>& procedure) {
         dcl->setType(ast::Type::INT_STAR);
         dcl->setId(token.value);
     }
-    token = _tokeniser->nextToken();
-    if (token.type != tok_becomes) {
-        throwInvalidToken(token);
-    }
-    token = _tokeniser->nextToken();
-    if (dcl->type() == ast::Type::INT) {
-        if (token.type != tok_num) {
+
+    if (!isParam) {
+        token = _tokeniser->nextToken();
+        if (token.type != tok_becomes) {
             throwInvalidToken(token);
         }
-        dcl->setValue(token.value);
-    } else if (dcl->type() == ast::Type::INT_STAR) {
-        if (token.type != tok_null) {
+        token = _tokeniser->nextToken();
+        if (dcl->type() == ast::Type::INT) {
+            if (token.type != tok_num) {
+                throwInvalidToken(token);
+            }
+            dcl->setValue(token.value);
+        } else if (dcl->type() == ast::Type::INT_STAR) {
+            if (token.type != tok_null) {
+                throwInvalidToken(token);
+            }
+            dcl->setValue("NULL");
+        }
+        token = _tokeniser->nextToken();
+        if (token.type != tok_semi) {
             throwInvalidToken(token);
         }
-        dcl->setValue("NULL");
     }
-    token = _tokeniser->nextToken();
-    if (token.type != tok_semi) {
-        throwInvalidToken(token);
-    }
+
     procedure->addDeclaration(std::move(dcl));
+}
+
+void Parser::parseStatement(std::unique_ptr<ast::Procedure>& procedure) {
+    auto token = _tokeniser->nextToken();
+
 }
 
 } // namespace wlp4

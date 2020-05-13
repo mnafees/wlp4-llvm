@@ -11,11 +11,11 @@ int main(int argc, const char* argv[]) {
             throw std::runtime_error("no input file");
         }
 
-        wlp4::Tokeniser tokeniser;
-        tokeniser.scanFileForTokens(argv[1]);
-        wlp4::Parser parser(&tokeniser);
+        std::unique_ptr<wlp4::Tokeniser> tokeniser(new wlp4::Tokeniser);
+        tokeniser->scanFileForTokens(argv[1]);
+        std::unique_ptr<wlp4::Parser> parser(new wlp4::Parser(tokeniser));
         std::vector<std::unique_ptr<wlp4::ast::Procedure>> procedures;
-        parser.parseTokens(procedures);
+        parser->parseTokens(procedures);
     } catch (std::exception& e) {
         std::cerr << "wlp4c: " << e.what() << std::endl
                   << "compilation terminated." << std::endl;

@@ -51,9 +51,9 @@ namespace wlp4 {
 
 class Tokeniser {
 public:
-    Tokeniser() : _currentTokenIdx(0) {}
+    Tokeniser();
 
-    void scanFileForTokens(const char* name) noexcept(false);
+    void scanFileForTokens(const char* filename) noexcept(false);
     void resetTokenHead();
     bool hasNextToken() const;
     const Token& nextToken() noexcept(false);

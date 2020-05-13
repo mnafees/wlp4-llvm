@@ -11,16 +11,16 @@ namespace wlp4 {
 
 class Parser {
 public:
-    Parser(Tokeniser *tokeniser) : _tokeniser(tokeniser) {}
+    Parser(std::unique_ptr<Tokeniser>& tokeniser);
 
     void parseTokens(std::vector<std::unique_ptr<ast::Procedure>>& procedures) noexcept(false);
 
 private:
     std::unique_ptr<ast::Procedure> parseProcedure() noexcept(false);
-    void parseProcedureParam(std::unique_ptr<ast::Procedure>& procedure) noexcept(false);
-    void parseDeclaration(std::unique_ptr<ast::Procedure>& procedure) noexcept(false);
+    void parseDcl(std::unique_ptr<ast::Procedure>& procedure, bool isParam = false) noexcept(false);
+    void parseStatement(std::unique_ptr<ast::Procedure>& procedure) noexcept(false);
 
-    Tokeniser *_tokeniser;
+    std::unique_ptr<Tokeniser>& _tokeniser;
     std::vector<std::string> _procedureNames;
 };
 
