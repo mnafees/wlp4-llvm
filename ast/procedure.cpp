@@ -14,17 +14,25 @@ const std::string& Procedure::name() const {
     return _name;
 }
 
-void Procedure::addParam(std::unique_ptr<Dcl>&& dcl) {
-    validateVariable(dcl->id());
+void Procedure::addParam(std::unique_ptr<Dcl> dcl) {
+    validateName(dcl->id());
     _params.push_back(std::move(dcl));
 }
 
-void Procedure::addDeclaration(std::unique_ptr<Dcl>&& dcl) {
-    validateVariable(dcl->id());
+void Procedure::addDeclaration(std::unique_ptr<Dcl> dcl) {
+    validateName(dcl->id());
     _dcls.push_back(std::move(dcl));
 }
 
-void Procedure::validateVariable(const std::string& name) {
+void Procedure::addStatement(std::unique_ptr<Statement> stmt) {
+    _stmts.push_back(std::move(stmt));
+}
+
+void Procedure::setReturnExpr(std::unique_ptr<Expr> expr) {
+    _retExpr = std::move(expr);
+}
+
+void Procedure::validateName(const std::string& name) {
     for (const auto& d : _params) {
         if (d->id() == name) {
             throw std::runtime_error(name + " redeclared in procedure " + _name);

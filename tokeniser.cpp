@@ -1,15 +1,16 @@
+// Self
 #include "tokeniser.hpp"
 
+// STL
 #include <exception>
 #include <fstream>
 #include <stdexcept>
-#include <iostream>
 
 namespace wlp4 {
 
-Tokeniser::Tokeniser()
-    : _currentTokenIdx(0)
-{}
+bool isTerminal(Symbol sym) {
+    return sym >= 0 && sym <= 32;
+}
 
 void Tokeniser::scanFileForTokens(const char* filename) {
     std::ifstream fs(filename);
@@ -27,31 +28,31 @@ void Tokeniser::scanFileForTokens(const char* filename) {
                 ch = fs.get();
                 continue;
             } else if (ch == '(') {
-                _symbols.push_back(Token{tok_lparen, col, line, "("});
+                _symbols.push_back(Token{LPAREN, col, line, "("});
             } else if (ch == ')') {
-                _symbols.push_back(Token{tok_rparen, col, line, ")"});
+                _symbols.push_back(Token{RPAREN, col, line, ")"});
             } else if (ch == '{') {
-                _symbols.push_back(Token{tok_lbrace, col, line, "{"});
+                _symbols.push_back(Token{LBRACE, col, line, "{"});
             } else if (ch == '}') {
-                _symbols.push_back(Token{tok_rbrace, col, line, "}"});
+                _symbols.push_back(Token{RBRACE, col, line, "}"});
             } else if (ch == '+') {
-                _symbols.push_back(Token{tok_plus, col, line, "+"});
+                _symbols.push_back(Token{PLUS, col, line, "+"});
             } else if (ch == '-') {
-                _symbols.push_back(Token{tok_minus, col, line, "-"});
+                _symbols.push_back(Token{MINUS, col, line, "-"});
             } else if (ch == '*') {
-                _symbols.push_back(Token{tok_star, col, line, "*"});
+                _symbols.push_back(Token{STAR, col, line, "*"});
             } else if (ch == '%') {
-                _symbols.push_back(Token{tok_pct, col, line, "%"});
+                _symbols.push_back(Token{PCT, col, line, "%"});
             } else if (ch == ',') {
-                _symbols.push_back(Token{tok_comma, col, line, ","});
+                _symbols.push_back(Token{COMMA, col, line, ","});
             } else if (ch == ';') {
-                _symbols.push_back(Token{tok_semi, col, line, ";"});
+                _symbols.push_back(Token{SEMI, col, line, ";"});
             } else if (ch == '[') {
-                _symbols.push_back(Token{tok_lbrack, col, line, "["});
+                _symbols.push_back(Token{LBRACK, col, line, "["});
             } else if (ch == ']') {
-                _symbols.push_back(Token{tok_rbrack, col, line, "]"});
+                _symbols.push_back(Token{RBRACK, col, line, "]"});
             } else if (ch == '&') {
-                _symbols.push_back(Token{tok_amp, col, line, "&"});
+                _symbols.push_back(Token{AMP, col, line, "&"});
             } else if (ch == '/') {
                 ch = fs.get();
                 if (ch == '/') {
@@ -61,38 +62,38 @@ void Tokeniser::scanFileForTokens(const char* filename) {
                     }
                     fs.unget();
                 } else {
-                    _symbols.push_back(Token{tok_slash, col, line, "/"});
+                    _symbols.push_back(Token{SLASH, col, line, "/"});
                     fs.unget();
                 }
             } else if (ch == '=') {
                 ch = fs.get();
                 if (ch == '=') {
-                    _symbols.push_back(Token{tok_eq, col, line, "=="});
+                    _symbols.push_back(Token{EQ, col, line, "=="});
                 } else {
-                    _symbols.push_back(Token{tok_becomes, col, line, "="});
+                    _symbols.push_back(Token{BECOMES, col, line, "="});
                     fs.unget();
                 }
             } else if (ch == '!') {
                 ch = fs.get();
                 if (ch == '=') {
-                    _symbols.push_back(Token{tok_ne, col, line, "!="});
+                    _symbols.push_back(Token{NE, col, line, "!="});
                 } else {
                     throw std::logic_error("Invalid token"); // FIXME: More descriptive error message
                 }
             } else if (ch == '<') {
                 ch = fs.get();
                 if (ch == '=') {
-                    _symbols.push_back(Token{tok_le, col, line, "<="});
+                    _symbols.push_back(Token{LE, col, line, "<="});
                 } else {
-                    _symbols.push_back(Token{tok_lt, col, line, "<"});
+                    _symbols.push_back(Token{LT, col, line, "<"});
                     fs.unget();
                 }
             } else if (ch == '>') {
                 ch = fs.get();
                 if (ch == '=') {
-                    _symbols.push_back(Token{tok_ge, col, line, ">="});
+                    _symbols.push_back(Token{GE, col, line, ">="});
                 } else {
-                    _symbols.push_back(Token{tok_gt, col, line, ">"});
+                    _symbols.push_back(Token{GT, col, line, ">"});
                     fs.unget();
                 }
             } else if (isalpha(ch)) {
@@ -104,27 +105,27 @@ void Tokeniser::scanFileForTokens(const char* filename) {
                 }
                 fs.unget();
                 if (constructedToken == "return") {
-                    _symbols.push_back(Token{tok_return, col, line, constructedToken});
+                    _symbols.push_back(Token{RETURN, col, line, constructedToken});
                 } else if (constructedToken == "if") {
-                    _symbols.push_back(Token{tok_if, col, line, constructedToken});
+                    _symbols.push_back(Token{IF, col, line, constructedToken});
                 } else if (constructedToken == "else") {
-                    _symbols.push_back(Token{tok_else, col, line, constructedToken});
+                    _symbols.push_back(Token{ELSE, col, line, constructedToken});
                 } else if (constructedToken == "while") {
-                    _symbols.push_back(Token{tok_while, col, line, constructedToken});
+                    _symbols.push_back(Token{WHILE, col, line, constructedToken});
                 } else if (constructedToken == "println") {
-                    _symbols.push_back(Token{tok_println, col, line, constructedToken});
+                    _symbols.push_back(Token{PRINTLN, col, line, constructedToken});
                 } else if (constructedToken == "wain") {
-                    _symbols.push_back(Token{tok_wain, col, line, constructedToken});
+                    _symbols.push_back(Token{WAIN, col, line, constructedToken});
                 } else if (constructedToken == "int") {
-                    _symbols.push_back(Token{tok_int, col, line, constructedToken});
+                    _symbols.push_back(Token{INT, col, line, constructedToken});
                 } else if (constructedToken == "new") {
-                    _symbols.push_back(Token{tok_new, col, line, constructedToken});
+                    _symbols.push_back(Token{NEW, col, line, constructedToken});
                 } else if (constructedToken == "delete") {
-                    _symbols.push_back(Token{tok_delete, col, line, constructedToken});
+                    _symbols.push_back(Token{DELETE, col, line, constructedToken});
                 } else if (constructedToken == "NULL") {
-                    _symbols.push_back(Token{tok_null, col, line, constructedToken});
+                    _symbols.push_back(Token{NULL_S, col, line, constructedToken});
                 } else {
-                    _symbols.push_back(Token{tok_id, col, line, constructedToken});
+                    _symbols.push_back(Token{ID, col, line, constructedToken});
                 }
                 col += constructedToken.length();
                 constructedToken.clear();
@@ -143,7 +144,7 @@ void Tokeniser::scanFileForTokens(const char* filename) {
                     throw std::logic_error("Number value exceeds the maximum allowed limit");
                 }
                 col += constructedToken.length();
-                _symbols.push_back(Token{tok_num, col, line, constructedToken});
+                _symbols.push_back(Token{NUM, col, line, constructedToken});
 
                 constructedToken.clear();
             } else {
@@ -157,29 +158,12 @@ void Tokeniser::scanFileForTokens(const char* filename) {
     }
 }
 
-void Tokeniser::resetTokenHead() {
-    _currentTokenIdx = 0;
+std::size_t Tokeniser::size() const {
+    return _symbols.size();
 }
 
-bool Tokeniser::hasNextToken() const {
-    return !_symbols.empty() && _currentTokenIdx >= 0 && _currentTokenIdx < _symbols.size()-1;
-}
-
-const Token& Tokeniser::nextToken() {
-    if (_currentTokenIdx >= _symbols.size()) {
-        throw std::range_error("Trying to get token out of index");
-    }
-#ifdef DEBUG
-    std::cout << "Next token: " << _symbols[_currentTokenIdx].value << std::endl;
-#endif
-    return _symbols[_currentTokenIdx++];
-}
-
-void Tokeniser::backUpToken() {
-    if (_currentTokenIdx == 0) {
-        throw std::range_error("Cannot go backup a token");
-    }
-    _currentTokenIdx--;
+const Token& Tokeniser::get(std::size_t idx) const {
+    return _symbols[idx];
 }
 
 } // namespace wlp4

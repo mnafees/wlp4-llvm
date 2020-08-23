@@ -1,9 +1,11 @@
-#include "tokeniser.hpp"
-#include "parser.hpp"
-#include "ast/procedure.hpp"
-
+// STL
 #include <iostream>
 #include <vector>
+
+// WLP4-LLVM
+#include "ast/procedure.hpp"
+#include "parser.hpp"
+#include "tokeniser.hpp"
 
 int main(int argc, const char* argv[]) {
     try {
@@ -11,11 +13,11 @@ int main(int argc, const char* argv[]) {
             throw std::runtime_error("no input file");
         }
 
-        std::unique_ptr<wlp4::Tokeniser> tokeniser(new wlp4::Tokeniser);
-        tokeniser->scanFileForTokens(argv[1]);
-        std::unique_ptr<wlp4::Parser> parser(new wlp4::Parser(tokeniser));
-        std::vector<std::unique_ptr<wlp4::ast::Procedure>> procedures;
-        parser->parseTokens(procedures);
+        wlp4::Tokeniser tokeniser;
+        tokeniser.scanFileForTokens(argv[1]);
+
+        wlp4::Parser parser;
+        auto procedures = parser.parse(tokeniser);
     } catch (std::exception& e) {
         std::cerr << "wlp4c: " << e.what() << std::endl
                   << "compilation terminated." << std::endl;

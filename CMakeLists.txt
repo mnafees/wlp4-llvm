@@ -4,8 +4,10 @@ project(wlp4-llvm)
 
 find_package(LLVM REQUIRED CONFIG)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG")
 
 include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
@@ -19,6 +21,9 @@ set(HDRS
     ast/base.hpp
     ast/dcl.hpp
     ast/procedure.hpp
+    ast/statement.hpp
+    ast/test.hpp
+    ast/expr.hpp
 )
 
 set(SRCS
@@ -29,6 +34,7 @@ set(SRCS
 
     ast/dcl.cpp
     ast/procedure.cpp
+    ast/statement.cpp
 )
 
 add_executable(wlp4c ${HDRS} ${SRCS})
