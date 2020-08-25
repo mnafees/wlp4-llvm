@@ -15,6 +15,8 @@ add_definitions(${LLVM_DEFINITIONS})
 llvm_map_components_to_libnames(llvm_libs support core)
 
 set(HDRS
+    state.hpp
+    token.hpp
     tokeniser.hpp
     parser.hpp
 
@@ -28,6 +30,7 @@ set(HDRS
 
 set(SRCS
     driver.cpp
+    state.cpp
     tokeniser.cpp
     parser.cpp
     codegen.cpp

@@ -7,15 +7,13 @@
 #include <vector>
 
 // WLP4-LLVM
-#include "tokeniser.hpp"
-#include "ast/procedure.hpp"
-#include "ast/statement.hpp"
-#include "ast/test.hpp"
-#include "ast/expr.hpp"
+#include "symbol.hpp"
 
 namespace wlp4 {
 
-struct State {
+class State;
+
+struct EarleyState {
     Symbol lhs; // The left hand side non-terminal symbol
     std::vector<Symbol> rhs; // The right hand side set of symbols
     std::size_t startIdx; // The position in the input at which the matching of this production began
@@ -28,17 +26,19 @@ struct State {
     bool isComplete() const;
 };
 
-using StateList = std::vector<State>;
-using Chart = std::vector<StateList>;
+using Chart = std::vector<std::vector<EarleyState>>;
 
 // An Earley Parser implementation
 class Parser {
 public:
-    std::vector<std::unique_ptr<ast::Procedure>> parse(const Tokeniser& tokeniser);
+    Parser() = default;
+    ~Parser() = default;
+
+    void parse(State& globalState);
 
 private:
     void setupNullableRules();
-    bool existsInStateList(const State& state, std::size_t stateListIdx);
+    bool existsInStateList(const EarleyState& state, std::size_t stateListIdx);
 #ifdef DEBUG
     void addToChart(std::pair<Symbol, std::vector<Symbol>> rule, std::size_t startIdx,
         std::size_t dot, std::size_t stateListIdx, const std::string& op);
@@ -49,6 +49,7 @@ private:
     void predictor(Symbol nextSym, std::size_t k, std::size_t l);
     void scanner(Symbol nextSym, std::size_t k);
     void completer(std::size_t k);
+    void generateAST();
 
     Chart _chart;
     std::map<Symbol, bool> _nullable;

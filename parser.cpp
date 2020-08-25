@@ -9,17 +9,23 @@
 #include <iostream>
 
 // WLP4-LLVM
+#include "state.hpp"
+#include "token.hpp"
 #include "debug.hpp"
+#include "ast/procedure.hpp"
+#include "ast/statement.hpp"
+#include "ast/test.hpp"
+#include "ast/expr.hpp"
 
 namespace wlp4 {
 
 // Context-free grammar taken from https://www.student.cs.uwaterloo.ca/~cs241/wlp4/WLP4.html
 const std::multimap<Symbol, std::vector<Symbol>> CFG = {
     { procedures, { procedure, procedures } },
-    { procedures, { main } },
+    { procedures, { main_s } },
     { procedure, { INT, ID, LPAREN, params, RPAREN, LBRACE, dcls, statements, RETURN,
                         expr, SEMI, RBRACE } },
-    { main, { INT, WAIN, LPAREN, dcl, COMMA, dcl, RPAREN, LBRACE, dcls, statements,
+    { main_s, { INT, WAIN, LPAREN, dcl, COMMA, dcl, RPAREN, LBRACE, dcls, statements,
                 RETURN, expr, SEMI, RBRACE } },
     { params, {} },
     { params, { paramlist } },
@@ -68,21 +74,15 @@ const std::multimap<Symbol, std::vector<Symbol>> CFG = {
     { lvalue, { LPAREN, lvalue, RPAREN } }
 };
 
-Symbol State::nextSymbol() const {
-// #ifdef DEBUG
-//     std::cout << "  nextSymbol() -> " << symToStr[rhs[dot]] << std::endl;
-// #endif
+Symbol EarleyState::nextSymbol() const {
     return rhs[dot];
 }
 
-bool State::isComplete() const {
-// #ifdef DEBUG
-//     std::cout << std::boolalpha << "  isComplete() -> " << (dot == rhs.size()) << std::endl;
-// #endif
+bool EarleyState::isComplete() const {
     return dot == rhs.size();
 }
 
-std::vector<std::unique_ptr<ast::Procedure>> Parser::parse(const Tokeniser& tokeniser) {
+void Parser::parse(State& globalState) {
     setupNullableRules();
 
 #ifdef DEBUG
@@ -91,16 +91,16 @@ std::vector<std::unique_ptr<ast::Procedure>> Parser::parse(const Tokeniser& toke
     addToChart({start, {procedures}}, 0, 0, 0);
 #endif
 
-    for (std::size_t i = 0; i < tokeniser.size(); ++i) {
-#ifdef DEBUG
-//         std::cout << "Processing token '" << tokeniser.get(i).value << "' of type '"
-//                   << symToStr[tokeniser.get(i).type] << "'" << std::endl;
-#endif
+    for (std::size_t i = 0; i < globalState.numTokens(); ++i) {
+        if (i > _chart.size() - 1) {
+            throw std::runtime_error("Invalid token " + globalState.getToken(i - 1).value );
+        }
+
         for (std::size_t j = 0; j < _chart[i].size(); ++j) {
             auto& state = _chart[i][j];
 #ifdef DEBUG
             std::cout << "Processing state list #" << i << std::endl
-                      << "  State { " << std::endl
+                      << "  EarleyState { " << std::endl
                       << "    lhs: " << symToStr[state.lhs] << std::endl
                       << "    rhs: ";
             for (auto sym : state.rhs) {
@@ -116,7 +116,7 @@ std::vector<std::unique_ptr<ast::Procedure>> Parser::parse(const Tokeniser& toke
             } else {
                 const auto nextSym = state.nextSymbol();
                 if (isTerminal(nextSym)) {
-                    scanner(tokeniser.get(i).type, i);
+                    scanner(globalState.getToken(i).type, i);
                 } else {
                     predictor(nextSym, i, j);
                 }
@@ -125,14 +125,15 @@ std::vector<std::unique_ptr<ast::Procedure>> Parser::parse(const Tokeniser& toke
     }
 
 #ifdef DEBUG
-    if (_chart.size() != tokeniser.size() + 1) {
+    if (_chart.size() != globalState.numTokens() + 1) {
         std::cerr << "Produced chart is incomplete!" << std::endl;
     }
 
+    std::cout << "Final chart is as follows:" << std::endl;
     for (std::size_t i = 0; i < _chart.size(); ++i) {
-        std::cout << "State list #" << i << ": " << std::endl;
+        std::cout << "EarleyState list #" << i << ": " << std::endl;
         for (const auto& state : _chart[i]) {
-            std::cout << "  State { " << std::endl
+            std::cout << "  EarleyState { " << std::endl
                       << "    lhs: " << symToStr[state.lhs] << std::endl
                       << "    rhs: ";
             for (auto sym : state.rhs) {
@@ -146,8 +147,6 @@ std::vector<std::unique_ptr<ast::Procedure>> Parser::parse(const Tokeniser& toke
         }
     }
 #endif
-
-    return std::vector<std::unique_ptr<ast::Procedure>>();
 }
 
 void Parser::setupNullableRules() {
@@ -166,7 +165,7 @@ void Parser::setupNullableRules() {
     }
 }
 
-bool Parser::existsInStateList(const State& state, std::size_t stateListIdx) {
+bool Parser::existsInStateList(const EarleyState& state, std::size_t stateListIdx) {
     for (std::size_t i = 0; i < _chart[stateListIdx].size(); ++i) {
         auto& s = _chart[stateListIdx][i];
         if (s.lhs == state.lhs && std::equal(s.rhs.begin(), s.rhs.end(), state.rhs.begin(), state.rhs.end()) &&
@@ -190,10 +189,10 @@ void Parser::addToChart(std::pair<Symbol, std::vector<Symbol>> rule, std::size_t
 #endif
 
     if (stateListIdx == _chart.size()) {
-        _chart.push_back(StateList());
+        _chart.push_back(std::vector<EarleyState>());
     }
 
-    State state;
+    EarleyState state;
     state.lhs = rule.first;
     state.rhs = rule.second;
     state.startIdx = startIdx;
@@ -204,19 +203,19 @@ void Parser::addToChart(std::pair<Symbol, std::vector<Symbol>> rule, std::size_t
 
     if (!existsInStateList(state, stateListIdx)) {
         _chart[stateListIdx].push_back(state);
-// #ifdef DEBUG
-//         std::cout << "Pushed new state in state list #" << stateListIdx << std::endl
-//                 << "    State { " << std::endl
-//                 << "      lhs: " << symToStr[state.lhs] << std::endl
-//                 << "      rhs: ";
-//         for (auto sym : state.rhs) {
-//             std::cout << symToStr[sym] << " ";
-//         }
-//         std::cout << std::endl
-//                 << "      startIdx: " << state.startIdx << std::endl
-//                 << "      dot: " << state.dot << std::endl
-//                 << "    }" << std::endl;
-// #endif
+#ifdef DEBUG
+        std::cout << "Pushed new state in state list #" << stateListIdx << std::endl
+                << "    EarleyState { " << std::endl
+                << "      lhs: " << symToStr[state.lhs] << std::endl
+                << "      rhs: ";
+        for (auto sym : state.rhs) {
+            std::cout << symToStr[sym] << " ";
+        }
+        std::cout << std::endl
+                << "      startIdx: " << state.startIdx << std::endl
+                << "      dot: " << state.dot << std::endl
+                << "    }" << std::endl;
+#endif
     }
 }
 
@@ -279,11 +278,6 @@ void Parser::completer(std::size_t k) {
             }
         }
     }
-}
-
-void throwInvalidToken(const Token& token) {
-    throw std::runtime_error("Parse error. Invalid token '" + token.value + "' at " + std::to_string(token.line) + ":"
-        + std::to_string(token.col));
 }
 
 } // namespace wlp4

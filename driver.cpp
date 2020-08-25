@@ -3,7 +3,7 @@
 #include <vector>
 
 // WLP4-LLVM
-#include "ast/procedure.hpp"
+#include "state.hpp"
 #include "parser.hpp"
 #include "tokeniser.hpp"
 
@@ -13,11 +13,14 @@ int main(int argc, const char* argv[]) {
             throw std::runtime_error("no input file");
         }
 
+        wlp4::State state;
+        state.setFilename(argv[1]);
+
         wlp4::Tokeniser tokeniser;
-        tokeniser.scanFileForTokens(argv[1]);
+        tokeniser.loadFile(argv[1], state);
 
         wlp4::Parser parser;
-        auto procedures = parser.parse(tokeniser);
+        parser.parse(state);
     } catch (std::exception& e) {
         std::cerr << "wlp4c: " << e.what() << std::endl
                   << "compilation terminated." << std::endl;

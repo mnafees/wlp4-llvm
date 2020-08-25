@@ -44,7 +44,7 @@ std::map<Symbol, std::string> symToStr = {
     { NULL_S, "NULL" },
     { procedures, "procedures" },
     { procedure, "procedure" },
-    { main, "main" },
+    { main_s, "main" },
     { params, "params" },
     { paramlist, "paramlist" },
     { type, "type" },

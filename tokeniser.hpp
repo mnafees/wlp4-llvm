@@ -7,84 +7,14 @@
 
 namespace wlp4 {
 
-enum Symbol {
-    // terminal symbols
-    ID = 0,
-    NUM,
-    LPAREN,
-    RPAREN,
-    LBRACE,
-    RBRACE,
-    RETURN,
-    IF,
-    ELSE,
-    WHILE,
-    PRINTLN,
-    WAIN,
-    BECOMES,
-    INT,
-    EQ,
-    NE,
-    LT,
-    GT,
-    LE,
-    GE,
-    PLUS,
-    MINUS,
-    STAR,
-    SLASH,
-    PCT,
-    COMMA,
-    SEMI,
-    NEW,
-    DELETE,
-    LBRACK,
-    RBRACK,
-    AMP,
-    NULL_S,
-
-    // non-terminal symbols
-    procedures,
-    procedure,
-    main,
-    params,
-    paramlist,
-    type,
-    dcl,
-    dcls,
-    statements,
-    lvalue,
-    expr,
-    statement,
-    test,
-    term,
-    factor,
-    arglist,
-
-    // dummy start state
-    start
-};
-
-bool isTerminal(Symbol sym);
-
-struct Token {
-    Symbol type;
-    int col;
-    int line;
-    std::string value;
-};
+class State;
 
 class Tokeniser {
 public:
-    Tokeniser() : _currentTokenIdx(0) {}
+    Tokeniser() = default;
+    ~Tokeniser() = default;
 
-    void scanFileForTokens(const char* filename);
-    std::size_t size() const;
-    const Token& get(std::size_t idx) const;
-
-private:
-    std::vector<Token> _symbols;
-    size_t _currentTokenIdx;
+    void loadFile(const char* filename, State& state);
 };
 
 } // namespace wlp4
