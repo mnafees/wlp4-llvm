@@ -11,7 +11,6 @@
 // WLP4-LLVM
 #include "state.hpp"
 #include "token.hpp"
-#include "debug.hpp"
 #include "ast/procedure.hpp"
 #include "ast/statement.hpp"
 #include "ast/test.hpp"
@@ -73,6 +72,24 @@ const std::multimap<Symbol, std::vector<Symbol>> CFG = {
     { lvalue, { STAR, factor } },
     { lvalue, { LPAREN, lvalue, RPAREN } }
 };
+
+#ifdef DEBUG
+std::map<Symbol, std::string> symToStr = {
+    { ID, "ID" }, { NUM, "NUM" }, { LPAREN, "LPAREN" }, { RPAREN, "RPAREN" },
+    { LBRACE, "LBRACE" }, { RBRACE, "RBRACE" }, { RETURN, "RETURN" }, { IF, "IF" },
+    { ELSE, "ELSE" }, { WHILE, "WHILE" }, { PRINTLN, "PRINTLN" }, { WAIN, "WAIN" },
+    { BECOMES, "BECOMES" }, { INT, "INT" }, { EQ, "EQ" }, { NE, "NE" }, { LT, "LT" },
+    { GT, "GT" }, { LE, "LE" }, { GE, "GE" }, { PLUS, "PLUS" }, { MINUS, "MINUS" },
+    { STAR, "STAR" }, { SLASH, "SLASH" }, { PCT, "PCT" }, { COMMA, "COMMA" },
+    { SEMI, "SEMI" }, { NEW, "NEW" }, { DELETE, "DELETE" }, { LBRACK, "LBRACK" },
+    { RBRACK, "RBRACK" }, { AMP, "AMP" }, { NULL_S, "NULL" }, { procedures, "procedures" },
+    { procedure, "procedure" }, { main_s, "main" }, { params, "params" },
+    { paramlist, "paramlist" }, { type, "type" }, { dcl, "dcl" }, { dcls, "dcls" },
+    { statements, "statements" }, { lvalue, "lvalue" }, { expr, "expr" }, { test, "test" },
+    { statement, "statement" }, { term, "term" }, { factor, "factor" }, { start, "start" },
+    { arglist, "arglist" }
+};
+#endif
 
 Symbol EarleyState::nextSymbol() const {
     return rhs[dot];
