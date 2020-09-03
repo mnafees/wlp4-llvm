@@ -4,7 +4,7 @@ project(wlp4-llvm)
 
 find_package(LLVM REQUIRED CONFIG)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG")
@@ -40,5 +40,8 @@ set(SRCS
     ast/statement.cpp
 )
 
+set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} "-flto")
+
 add_executable(wlp4c ${HDRS} ${SRCS})
 target_link_libraries(wlp4c ${llvm_libs})
+target_compile_options(wlp4c PUBLIC "-flto")

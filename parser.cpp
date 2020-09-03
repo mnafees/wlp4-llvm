@@ -2,6 +2,7 @@
 #include "parser.hpp"
 
 // STL
+#include <cassert>
 #include <fstream>
 #include <sstream>
 #include <map>
@@ -20,6 +21,7 @@ namespace wlp4 {
 
 // Context-free grammar taken from https://www.student.cs.uwaterloo.ca/~cs241/wlp4/WLP4.html
 const std::multimap<Symbol, std::vector<Symbol>> CFG = {
+    { start, { procedures } },
     { procedures, { procedure, procedures } },
     { procedures, { main_s } },
     { procedure, { INT, ID, LPAREN, params, RPAREN, LBRACE, dcls, statements, RETURN,
@@ -91,47 +93,66 @@ std::map<Symbol, std::string> symToStr = {
 };
 #endif
 
-Symbol EarleyState::nextSymbol() const {
-    return rhs[dot];
+Elem::Elem(const Rule& rule, std::size_t startIdx, std::size_t dot)
+    : _rule(rule), _startIdx(startIdx), _dot(dot) {}
+
+const Rule& Elem::rule() const {
+    return _rule;
 }
 
-bool EarleyState::isComplete() const {
-    return dot == rhs.size();
+std::size_t Elem::startIdx() const {
+    return _startIdx;
+}
+
+std::size_t Elem::dot() const {
+    return _dot;
+}
+
+bool Elem::operator==(const Elem& el) const {
+    return &_rule == &el._rule && _startIdx == el._startIdx && _dot == el._dot;
+}
+
+Symbol Elem::nextSymbol() const {
+    return _rule.second[_dot];
+}
+
+bool Elem::isComplete() const {
+    return _dot == _rule.second.size();
 }
 
 void Parser::parse(State& globalState) {
     setupNullableRules();
 
 #ifdef DEBUG
-    addToChart({start, {procedures}}, 0, 0, 0, "initial");
+    addToChart(*CFG.find(start), 0, 0, 0, "initial");
 #else
-    addToChart({start, {procedures}}, 0, 0, 0);
+    addToChart(*CFG.find(start), 0, 0, 0);
 #endif
 
     for (std::size_t i = 0; i < globalState.numTokens(); ++i) {
         if (i > _chart.size() - 1) {
-            throw std::runtime_error("Invalid token " + globalState.getToken(i - 1).value );
+            throw std::runtime_error("Invalid token " + globalState.getToken(i - 1).value);
         }
 
         for (std::size_t j = 0; j < _chart[i].size(); ++j) {
-            auto& state = _chart[i][j];
+            const auto& el = _chart[i][j];
 #ifdef DEBUG
-            std::cout << "Processing state list #" << i << std::endl
-                      << "  EarleyState { " << std::endl
-                      << "    lhs: " << symToStr[state.lhs] << std::endl
+            std::cout << "Processing elem list #" << i << std::endl
+                      << "  Elem {" << std::endl
+                      << "    lhs: " << symToStr[el->rule().first] << std::endl
                       << "    rhs: ";
-            for (auto sym : state.rhs) {
+            for (auto sym : el->rule().second) {
                 std::cout << symToStr[sym] << " ";
             }
             std::cout << std::endl
-                      << "    startIdx: " << state.startIdx << std::endl
-                      << "    dot: " << state.dot << std::endl
+                      << "    startIdx: " << el->startIdx() << std::endl
+                      << "    dot: " << el->dot() << std::endl
                       << "  }" << std::endl;
 #endif
-            if (state.isComplete()) {
+            if (el->isComplete()) {
                 completer(i);
             } else {
-                const auto nextSym = state.nextSymbol();
+                const auto nextSym = el->nextSymbol();
                 if (isTerminal(nextSym)) {
                     scanner(globalState.getToken(i).type, i);
                 } else {
@@ -139,6 +160,12 @@ void Parser::parse(State& globalState) {
                 }
             }
         }
+    }
+    if (_chart.size() - 1 == globalState.numTokens()) {
+        completer(_chart.size() - 1);
+        // verifyCompleteChart(globalState);
+    } else {
+        throw std::runtime_error("Invalid WLP4 code");
     }
 
 #ifdef DEBUG
@@ -148,18 +175,19 @@ void Parser::parse(State& globalState) {
 
     std::cout << "Final chart is as follows:" << std::endl;
     for (std::size_t i = 0; i < _chart.size(); ++i) {
-        std::cout << "EarleyState list #" << i << ": " << std::endl;
-        for (const auto& state : _chart[i]) {
-            std::cout << "  EarleyState { " << std::endl
-                      << "    lhs: " << symToStr[state.lhs] << std::endl
+        std::cout << "Elem list #" << i << ": " << std::endl;
+        for (const auto& el : _chart[i]) {
+            if (!el->isComplete()) continue;
+            std::cout << "  Elem {" << std::endl
+                      << "    lhs: " << symToStr[el->rule().first] << std::endl
                       << "    rhs: ";
-            for (auto sym : state.rhs) {
+            for (auto sym : el->rule().second) {
                 std::cout << symToStr[sym] << " ";
             }
             std::cout << std::endl
-                      << "    startIdx: " << state.startIdx << std::endl
-                      << "    dot: " << state.dot << std::endl
-                      << "    op: " << state.op << std::endl
+                      << "    startIdx: " << el->startIdx() << std::endl
+                      << "    dot: " << el->dot() << std::endl
+                      << "    op: " << el->op << std::endl
                       << "  }" << std::endl;
         }
     }
@@ -182,12 +210,10 @@ void Parser::setupNullableRules() {
     }
 }
 
-bool Parser::existsInStateList(const EarleyState& state, std::size_t stateListIdx) {
-    for (std::size_t i = 0; i < _chart[stateListIdx].size(); ++i) {
-        auto& s = _chart[stateListIdx][i];
-        if (s.lhs == state.lhs && std::equal(s.rhs.begin(), s.rhs.end(), state.rhs.begin(), state.rhs.end()) &&
-            s.startIdx == state.startIdx && s.dot == state.dot) {
-                return true;
+bool Parser::existsInStateList(const std::unique_ptr<Elem>& el, std::size_t stateListIdx) {
+    for (const auto& s : _chart[stateListIdx]) {
+        if (s == el) {
+            return true;
         }
     }
 
@@ -195,44 +221,40 @@ bool Parser::existsInStateList(const EarleyState& state, std::size_t stateListId
 }
 
 #ifdef DEBUG
-void Parser::addToChart(std::pair<Symbol, std::vector<Symbol>> rule, std::size_t startIdx,
-        std::size_t dot, std::size_t stateListIdx, const std::string& op) {
+void Parser::addToChart(const Rule& rule, std::size_t startIdx, std::size_t dot, std::size_t stateListIdx,
+                        const std::string& op) {
 #else
-void Parser::addToChart(std::pair<Symbol, std::vector<Symbol>> rule, std::size_t startIdx,
-    std::size_t dot, std::size_t stateListIdx) {
+void Parser::addToChart(const Rule& rule, std::size_t startIdx, std::size_t dot, std::size_t stateListIdx) {
 #endif
 #ifdef DEBUG
     std::cout << "addToChart():" << std::endl;
 #endif
 
     if (stateListIdx == _chart.size()) {
-        _chart.push_back(std::vector<EarleyState>());
+        _chart.push_back(std::vector<std::unique_ptr<Elem>>());
     }
 
-    EarleyState state;
-    state.lhs = rule.first;
-    state.rhs = rule.second;
-    state.startIdx = startIdx;
-    state.dot = dot;
+    std::unique_ptr<Elem> el(new Elem(rule, startIdx, dot));
 #ifdef DEBUG
-    state.op = op;
+    el->op = op;
 #endif
 
-    if (!existsInStateList(state, stateListIdx)) {
-        _chart[stateListIdx].push_back(state);
+    if (!existsInStateList(el, stateListIdx)) {
 #ifdef DEBUG
         std::cout << "Pushed new state in state list #" << stateListIdx << std::endl
-                << "    EarleyState { " << std::endl
-                << "      lhs: " << symToStr[state.lhs] << std::endl
-                << "      rhs: ";
-        for (auto sym : state.rhs) {
+                  << "Elem {" << std::endl
+                  << "  lhs: " << symToStr[el->rule().first] << std::endl
+                  << "  rhs: ";
+        for (auto sym : el->rule().second) {
             std::cout << symToStr[sym] << " ";
         }
         std::cout << std::endl
-                << "      startIdx: " << state.startIdx << std::endl
-                << "      dot: " << state.dot << std::endl
-                << "    }" << std::endl;
+                  << "  startIdx: " << el->startIdx() << std::endl
+                  << "  dot: " << el->dot() << std::endl
+                  << "  op: " << el->op << std::endl
+                  << "}" << std::endl;
 #endif
+        _chart[stateListIdx].push_back(std::move(el));
     }
 }
 
@@ -245,17 +267,15 @@ void Parser::predictor(Symbol nextSym, std::size_t k, std::size_t l) {
     for (auto it = itPair.first; it != itPair.second; ++it) {
         auto rule = *it;
 #ifdef DEBUG
-        addToChart({nextSym, rule.second}, k, 0, k, "predictor");
+        addToChart(rule, k, 0, k, "predictor");
 #else
-        addToChart({nextSym, rule.second}, k, 0, k);
+        addToChart(rule, k, 0, k);
 #endif
         if (_nullable[nextSym]) {
 #ifdef DEBUG
-            addToChart({_chart[k][l].lhs, _chart[k][l].rhs}, _chart[k][l].startIdx,
-                _chart[k][l].dot + 1, k, "predictor_nullable");
+            addToChart(_chart[k][l]->rule(), _chart[k][l]->startIdx(), _chart[k][l]->dot() + 1, k, "predictor_nullable");
 #else
-            addToChart({_chart[k][l].lhs, _chart[k][l].rhs}, _chart[k][l].startIdx,
-                _chart[k][l].dot + 1, k);
+            addToChart(_chart[k][l]->rule(), _chart[k][l]->startIdx(), _chart[k][l]->dot() + 1, k);
 #endif
         }
     }
@@ -266,12 +286,12 @@ void Parser::scanner(Symbol nextSym, std::size_t k) {
     std::cout << "scanner for " << symToStr[nextSym] << std::endl;
 #endif
 
-    for (const auto& state : _chart[k]) {
-        if (!state.isComplete() && state.nextSymbol() == nextSym) {
+    for (const auto& el : _chart[k]) {
+        if (!el->isComplete() && el->nextSymbol() == nextSym) {
 #ifdef DEBUG
-            addToChart({state.lhs, state.rhs}, state.startIdx, state.dot + 1, k + 1, "scanner");
+            addToChart(el->rule(), el->startIdx(), el->dot() + 1, k + 1, "scanner");
 #else
-            addToChart({state.lhs, state.rhs}, state.startIdx, state.dot + 1, k + 1);
+            addToChart(el->rule(), el->startIdx(), el->dot() + 1, k + 1);
 #endif
         }
     }
@@ -282,16 +302,36 @@ void Parser::completer(std::size_t k) {
     std::cout << "completer for state list #" << k << std::endl;
 #endif
 
-    for (const auto& s1 : _chart[k]) {
-        if (s1.isComplete()) {
-            for (const auto& s2 : _chart[s1.startIdx]) {
-                if (!s2.isComplete() && s2.nextSymbol() == s1.lhs) {
+    for (std::size_t j = 0; j < _chart[k].size(); ++j) {
+        if (_chart[k][j]->isComplete()) {
+            for (std::size_t i = 0; i < _chart[_chart[k][j]->startIdx()].size(); ++i) {
+                if (!_chart[_chart[k][j]->startIdx()][i]->isComplete() &&
+                    _chart[_chart[k][j]->startIdx()][i]->nextSymbol() == _chart[k][j]->rule().first) {
 #ifdef DEBUG
-                    addToChart({s2.lhs, s2.rhs}, s2.startIdx, s2.dot + 1, k, "completer");
+                    addToChart(_chart[_chart[k][j]->startIdx()][i]->rule(),
+                        _chart[_chart[k][j]->startIdx()][i]->startIdx(),
+                        _chart[_chart[k][j]->startIdx()][i]->dot() + 1, k, "completer");
 #else
-                    addToChart({s2.lhs, s2.rhs}, s2.startIdx, s2.dot + 1, k);
+                    addToChart(_chart[_chart[k][j]->startIdx()][i]->rule(),
+                        _chart[_chart[k][j]->startIdx()][i]->startIdx(),
+                        _chart[_chart[k][j]->startIdx()][i]->dot() + 1, k);
 #endif
                 }
+            }
+        }
+    }
+}
+
+void Parser::verifyCompleteChart(const State& globalState) {
+    std::vector<std::string> _procedureNames;
+
+    for (std::size_t i = _chart.size() - 1; i >= 0; --i) {
+        for (const auto& el : _chart[i]) {
+            if (!el->isComplete()) continue;
+
+            if (el->rule().first == procedure) {
+                assert(globalState.getToken(el->startIdx() + 1).type == ID);
+                _procedureNames.push_back(globalState.getToken(el->startIdx() + 1).value);
             }
         }
     }

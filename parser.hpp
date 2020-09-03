@@ -13,20 +13,33 @@ namespace wlp4 {
 
 class State;
 
-struct EarleyState {
-    Symbol lhs; // The left hand side non-terminal symbol
-    std::vector<Symbol> rhs; // The right hand side set of symbols
-    std::size_t startIdx; // The position in the input at which the matching of this production began
-    std::size_t dot; // The current position in that production
+using Rule = std::pair<Symbol, std::vector<Symbol>>;
+
+class Elem {
+public:
+    Elem(const Rule& rule, std::size_t startIdx, std::size_t dot);
+    ~Elem() = default;
+
+    const Rule& rule() const;
+    std::size_t startIdx() const;
+    std::size_t dot() const;
+
+    bool operator==(const Elem& el) const;
+
+    Symbol nextSymbol() const;
+    bool isComplete() const;
+
 #ifdef DEBUG
     std::string op;
 #endif
 
-    Symbol nextSymbol() const;
-    bool isComplete() const;
+private:
+    const Rule& _rule; // The CFG rule for this element
+    std::size_t _startIdx; // The position in the input at which the matching of this production began
+    std::size_t _dot; // The current position in that production
 };
 
-using Chart = std::vector<std::vector<EarleyState>>;
+using Chart = std::vector<std::vector<std::unique_ptr<Elem>>>;
 
 // An Earley Parser implementation
 class Parser {
@@ -38,17 +51,18 @@ public:
 
 private:
     void setupNullableRules();
-    bool existsInStateList(const EarleyState& state, std::size_t stateListIdx);
+    bool existsInStateList(const std::unique_ptr<Elem>& el, std::size_t stateListIdx);
 #ifdef DEBUG
-    void addToChart(std::pair<Symbol, std::vector<Symbol>> rule, std::size_t startIdx,
+    void addToChart(const Rule& rule, std::size_t startIdx,
         std::size_t dot, std::size_t stateListIdx, const std::string& op);
 #else
-    void addToChart(std::pair<Symbol, std::vector<Symbol>> rule, std::size_t startIdx,
+    void addToChart(const Rule& rule, std::size_t startIdx,
         std::size_t dot, std::size_t stateListIdx);
 #endif
     void predictor(Symbol nextSym, std::size_t k, std::size_t l);
     void scanner(Symbol nextSym, std::size_t k);
     void completer(std::size_t k);
+    void verifyCompleteChart(const State& globalState);
     void generateAST();
 
     Chart _chart;

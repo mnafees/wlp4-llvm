@@ -19,8 +19,8 @@ public:
     const std::string& filename();
 
     void addToken(Token token);
-    const Token& getToken(std::size_t idx);
-    std::size_t numTokens();
+    const Token& getToken(std::size_t idx) const;
+    std::size_t numTokens() const;
 
 private:
     std::string _filename;

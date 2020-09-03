@@ -18,11 +18,11 @@ void State::addToken(Token token) {
     _tokens.push_back(token);
 }
 
-const Token& State::getToken(std::size_t idx) {
+const Token& State::getToken(std::size_t idx) const {
     return _tokens[idx];
 }
 
-std::size_t State::numTokens() {
+std::size_t State::numTokens() const {
     return _tokens.size();
 }
 
