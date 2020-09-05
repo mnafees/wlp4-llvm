@@ -13,18 +13,16 @@ namespace wlp4 {
 
 class State;
 
-using Rule = std::pair<Symbol, std::vector<Symbol>>;
+using Rule = std::pair<const Symbol, std::vector<Symbol>>;
 
 class Elem {
 public:
-    Elem(const Rule& rule, std::size_t startIdx, std::size_t dot);
+    Elem(std::size_t ruleIdx, std::size_t startIdx, std::size_t dot);
     ~Elem() = default;
 
-    const Rule& rule() const;
+    std::size_t ruleIdx() const;
     std::size_t startIdx() const;
     std::size_t dot() const;
-
-    bool operator==(const Elem& el) const;
 
     Symbol nextSymbol() const;
     bool isComplete() const;
@@ -34,7 +32,7 @@ public:
 #endif
 
 private:
-    const Rule& _rule; // The CFG rule for this element
+    std::size_t _ruleIdx; // The index of the CFG rule for this element
     std::size_t _startIdx; // The position in the input at which the matching of this production began
     std::size_t _dot; // The current position in that production
 };
@@ -53,10 +51,10 @@ private:
     void setupNullableRules();
     bool existsInStateList(const std::unique_ptr<Elem>& el, std::size_t stateListIdx);
 #ifdef DEBUG
-    void addToChart(const Rule& rule, std::size_t startIdx,
+    void addToChart(std::size_t ruleIdx, std::size_t startIdx,
         std::size_t dot, std::size_t stateListIdx, const std::string& op);
 #else
-    void addToChart(const Rule& rule, std::size_t startIdx,
+    void addToChart(std::size_t ruleIdx, std::size_t startIdx,
         std::size_t dot, std::size_t stateListIdx);
 #endif
     void predictor(Symbol nextSym, std::size_t k, std::size_t l);
