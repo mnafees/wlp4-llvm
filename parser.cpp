@@ -157,12 +157,7 @@ void Parser::parse(State& globalState) {
             }
         }
     }
-    if (_chart.size() - 1 == globalState.numTokens()) {
-        completer(_chart.size() - 1);
-        // verifyCompleteChart(globalState);
-    } else {
-        throw std::runtime_error("Invalid WLP4 code");
-    }
+    completer(_chart.size() - 1);
 
 #ifdef DEBUG
     if (_chart.size() != globalState.numTokens() + 1) {
@@ -188,6 +183,12 @@ void Parser::parse(State& globalState) {
         }
     }
 #endif
+
+    if (_chart.size() - 1 == globalState.numTokens()) {
+        verifyCompleteChart(globalState);
+    } else {
+        throw std::runtime_error("Invalid WLP4 code");
+    }
 }
 
 void Parser::setupNullableRules() {
@@ -319,11 +320,25 @@ void Parser::completer(std::size_t k) {
 }
 
 void Parser::verifyCompleteChart(const State& globalState) {
+    // first pass to check validity of procedures
+    // the very last elem list should contain a complete wain rule
+    bool hasWainLast = false;
+    for (const auto &el : _chart.back()) {
+        if (el->isComplete() && CFG[el->ruleIdx()].first == main_s) {
+            hasWainLast = true;
+        } else if (el->isComplete() && CFG[el->ruleIdx()].first == procedure) {
+            hasWainLast = false;
+        }
+    }
+    if (!hasWainLast) {
+        throw std::runtime_error("wain() should be the last declared procedure");
+    }
+
     std::vector<std::string> _procedureNames;
 
-    for (std::size_t i = _chart.size() - 1; i >= 0; --i) {
-        for (const auto& el : _chart[i]) {
-            if (!el->isComplete()) continue;
+    for (auto it = _chart.rbegin(); it != _chart.rend(); ++it) {
+        for (const auto& el : *it) {
+            if (!el->isComplete()) continue; // we only care about complete steps
 
             if (CFG[el->ruleIdx()].first == procedure) {
                 assert(globalState.getToken(el->startIdx() + 1).type == ID);
