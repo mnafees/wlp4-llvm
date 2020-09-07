@@ -3,9 +3,9 @@
 
 // STL
 #include <array>
-#include <cassert>
 #include <fstream>
 #include <sstream>
+#include <stack>
 #include <stdexcept>
 #include <iostream>
 
@@ -157,11 +157,11 @@ void Parser::parse(State& globalState) {
             }
         }
     }
-    completer(_chart.size() - 1);
 
     if (_chart.size() - 1 == globalState.numTokens()) {
+        populateProcedureNames(globalState);
         cleanupChart();
-        // verifyCompleteChart(globalState);
+        // generateAST(globalState);
     } else {
         throw std::runtime_error("Invalid WLP4 code");
     }
@@ -295,31 +295,13 @@ void Parser::completer(std::size_t k) {
     }
 }
 
-void Parser::verifyCompleteChart(const State& globalState) {
-    // first pass to check validity of procedures
-    // the very last elem list should contain a complete wain rule
-    bool hasWainLast = false;
-    for (const auto &el : _chart.back()) {
-        if (el->isComplete() && CFG[el->ruleIdx()].first == main_s) {
-            hasWainLast = true;
-        } else if (el->isComplete() && CFG[el->ruleIdx()].first == procedure) {
-            // FIXME: do we need this?
-            hasWainLast = false;
-        }
-    }
-    if (!hasWainLast) {
-        throw std::runtime_error("wain() should be the last declared procedure");
-    }
-
-    std::vector<std::string> _procedureNames;
-
-    for (auto it = _chart.rbegin(); it != _chart.rend(); ++it) {
-        for (const auto& el : *it) {
-            if (!el->isComplete()) continue; // we only care about complete steps
-
-            if (CFG[el->ruleIdx()].first == procedure) {
-                assert(globalState.getToken(el->startIdx() + 1).type == ID);
-                _procedureNames.push_back(globalState.getToken(el->startIdx() + 1).value);
+void Parser::populateProcedureNames(const State& globalState) {
+    for (std::size_t i = _chart.size() - 1; i > 0;) {
+        for (const auto& el : _chart[i]) {
+            if (CFG[el->ruleIdx()].first == procedure || CFG[el->ruleIdx()].first == main_s) {
+                _procedureNames.emplace_front(globalState.getToken(el->startIdx() + 1).value);
+                i = el->startIdx();
+                break;
             }
         }
     }
@@ -361,6 +343,50 @@ void Parser::cleanupChart() {
         }
     }
 #endif
+}
+
+void Parser::generateAST(State& globalState) {
+    std::stack<Symbol> nonTerminals;
+    std::unique_ptr<ast::Procedure> proc;
+    for (std::size_t i = _chart.size() - 1; i >= 0;) {
+        for (const auto& el : _chart[i]) {
+            if (CFG[el->ruleIdx()].first == procedure || CFG[el->ruleIdx()].first == main_s) {
+                for (const auto& sym : CFG[el->ruleIdx()].second) {
+                    if (!isTerminal(sym)) {
+                        nonTerminals.push(sym);
+                    }
+                }
+                proc = std::make_unique<ast::Procedure>(globalState.getToken(el->startIdx() + 1).value);
+            } else if (!nonTerminals.empty()) {
+                auto sym = nonTerminals.top();
+                switch (sym) {
+                    case expr:
+
+                        break;
+                    case statements:
+
+                        break;
+                    case dcls:
+
+                        break;
+                    case dcl:
+                        assert(proc->isWain());
+
+                        break;
+                    case params:
+
+                        break;
+                    default:
+                        // this should never occur
+                        throw std::runtime_error("Non-terminal stack seems to be corrupted");
+                }
+                nonTerminals.pop();
+            }
+        }
+        if (nonTerminals.empty()) {
+            globalState.addProcedure(std::move(proc));
+        }
+    }
 }
 
 } // namespace wlp4

@@ -2,6 +2,7 @@
 #define __WLP4_LLVM_STATE
 
 // STL
+#include <list>
 #include <vector>
 
 // WKL4-LLVM
@@ -12,20 +13,24 @@ namespace wlp4 {
 
 class State {
 public:
-    State() = default;
+    explicit State(const char* name);
     ~State() = default;
 
     void setFilename(const char* name);
-    const std::string& filename();
+    const auto& filename() const;
 
     void addToken(Token token);
     const Token& getToken(std::size_t idx) const;
     std::size_t numTokens() const;
 
+    auto hasProcedure(const std::string& name) const;
+    void addProcedure(std::unique_ptr<ast::Procedure> procedure);
+    const auto& getProcedures() const;
+
 private:
     std::string _filename;
     std::vector<Token> _tokens;
-    std::vector<ast::Procedure> _procedures;
+    std::list<std::unique_ptr<ast::Procedure>> _procedures;
 };
 
 } // namespace wlp4

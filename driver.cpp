@@ -13,8 +13,7 @@ int main(int argc, const char* argv[]) {
             throw std::runtime_error("no input file");
         }
 
-        wlp4::State state;
-        state.setFilename(argv[1]);
+        wlp4::State state(argv[1]);
 
         wlp4::Tokeniser tokeniser;
         tokeniser.loadFile(argv[1], state);

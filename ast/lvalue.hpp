@@ -7,6 +7,8 @@
 
 namespace wlp4::ast {
 
+class Factor;
+
 union Lvalue {
     std::string id;
     std::unique_ptr<Factor> factor;

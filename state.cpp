@@ -6,11 +6,9 @@
 
 namespace wlp4 {
 
-void State::setFilename(const char* name) {
-    _filename = name;
-}
+State::State(const char* name) : _filename(name) {}
 
-const std::string& State::filename() {
+const auto& State::filename() const {
     return _filename;
 }
 
@@ -24,6 +22,25 @@ const Token& State::getToken(std::size_t idx) const {
 
 std::size_t State::numTokens() const {
     return _tokens.size();
+}
+
+auto State::hasProcedure(const std::string& name) const {
+    for (const auto& p : _procedures) {
+        if (p->name() == name) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void State::addProcedure(std::unique_ptr<ast::Procedure> procedure) {
+    if (!hasProcedure(procedure->name())) {
+        _procedures.push_front(std::move(procedure));
+    }
+}
+
+const auto& State::getProcedures() const {
+    return _procedures;
 }
 
 } // namespace wlp4

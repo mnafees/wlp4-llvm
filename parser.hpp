@@ -2,6 +2,7 @@
 #define __WLP4_LLVM_PARSER
 
 // STL
+#include <list>
 #include <map>
 #include <memory>
 #include <vector>
@@ -60,12 +61,13 @@ private:
     void predictor(Symbol nextSym, std::size_t k, std::size_t l);
     void scanner(Symbol nextSym, std::size_t k);
     void completer(std::size_t k);
-    void verifyCompleteChart(const State& globalState);
+    void populateProcedureNames(const State& globalState);
     void cleanupChart();
-    void generateAST();
+    void generateAST(State& globalState);
 
     Chart _chart;
     std::map<Symbol, bool> _nullable;
+    std::list<std::string> _procedureNames;
 };
 
 } // namespace wlp4
