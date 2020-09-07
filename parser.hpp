@@ -61,6 +61,7 @@ private:
     void scanner(Symbol nextSym, std::size_t k);
     void completer(std::size_t k);
     void verifyCompleteChart(const State& globalState);
+    void cleanupChart();
     void generateAST();
 
     Chart _chart;

@@ -159,33 +159,9 @@ void Parser::parse(State& globalState) {
     }
     completer(_chart.size() - 1);
 
-#ifdef DEBUG
-    if (_chart.size() != globalState.numTokens() + 1) {
-        std::cerr << "Produced chart is incomplete!" << std::endl;
-    }
-
-    std::cout << "Final chart is as follows:" << std::endl;
-    for (std::size_t i = 0; i < _chart.size(); ++i) {
-        std::cout << "Elem list #" << i << ": " << std::endl;
-        for (const auto& el : _chart[i]) {
-            if (!el->isComplete()) continue;
-            std::cout << "  Elem {" << std::endl
-                      << "    lhs: " << symToStr[CFG[el->ruleIdx()].first] << std::endl
-                      << "    rhs: ";
-            for (auto sym : CFG[el->ruleIdx()].second) {
-                std::cout << symToStr[sym] << " ";
-            }
-            std::cout << std::endl
-                      << "    startIdx: " << el->startIdx() << std::endl
-                      << "    dot: " << el->dot() << std::endl
-                      << "    op: " << el->op << std::endl
-                      << "  }" << std::endl;
-        }
-    }
-#endif
-
     if (_chart.size() - 1 == globalState.numTokens()) {
-        verifyCompleteChart(globalState);
+        cleanupChart();
+        // verifyCompleteChart(globalState);
     } else {
         throw std::runtime_error("Invalid WLP4 code");
     }
@@ -327,6 +303,7 @@ void Parser::verifyCompleteChart(const State& globalState) {
         if (el->isComplete() && CFG[el->ruleIdx()].first == main_s) {
             hasWainLast = true;
         } else if (el->isComplete() && CFG[el->ruleIdx()].first == procedure) {
+            // FIXME: do we need this?
             hasWainLast = false;
         }
     }
@@ -346,6 +323,44 @@ void Parser::verifyCompleteChart(const State& globalState) {
             }
         }
     }
+}
+
+void Parser::cleanupChart() {
+    // Iterate and keep only complete elems and elem lists
+    for (auto it = _chart.begin(); it != _chart.end();) {
+        for (auto elit = it->begin(); elit != it->end();) {
+            if (!(*elit)->isComplete()) {
+                elit = it->erase(elit);
+            } else {
+                ++elit;
+            }
+        }
+        if (it->empty()) {
+            it = _chart.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
+#ifdef DEBUG
+    std::cout << "Cleaned up chart is as follows:" << std::endl;
+    for (std::size_t i = 0; i < _chart.size(); ++i) {
+        std::cout << "Elem list #" << i << ": " << std::endl;
+        for (const auto& el : _chart[i]) {
+            std::cout << "  Elem {" << std::endl
+                      << "    lhs: " << symToStr[CFG[el->ruleIdx()].first] << std::endl
+                      << "    rhs: ";
+            for (auto sym : CFG[el->ruleIdx()].second) {
+                std::cout << symToStr[sym] << " ";
+            }
+            std::cout << std::endl
+                      << "    startIdx: " << el->startIdx() << std::endl
+                      << "    dot: " << el->dot() << std::endl
+                      << "    op: " << el->op << std::endl
+                      << "  }" << std::endl;
+        }
+    }
+#endif
 }
 
 } // namespace wlp4

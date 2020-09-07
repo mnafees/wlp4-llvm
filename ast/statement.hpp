@@ -1,16 +1,30 @@
 #ifndef __WLP4_LLVM_AST_STATEMENT
 #define __WLP4_LLVM_AST_STATEMENT
 
-#include "base.hpp"
-#include "test.hpp"
-
+// STL
 #include <vector>
+
+// WLP4-LLVM
+#include "base.hpp"
+#include "lvalue.hpp"
+#include "test.hpp"
 
 namespace wlp4::ast {
 
 class Statement : public Base {
 public:
     virtual llvm::Value* codegen() = 0;
+};
+
+class LvalueStatement : public Statement {
+public:
+    void setLvalue(std::unique_ptr<Lvalue> lvalue);
+    void setExpr(std::unique_ptr<Expr> expr);
+    llvm::Value* codegen() override;
+
+private:
+    std::unique_ptr<Lvalue> _lvalue;
+    std::unique_ptr<Expr> _expr;
 };
 
 class IfStatement : public Statement {
@@ -27,6 +41,35 @@ private:
     std::unique_ptr<Test> _test;
     std::vector<std::unique_ptr<Statement>> _trueStatements;
     std::vector<std::unique_ptr<Statement>> _falseStatements;
+};
+
+class WhileStatement : public Statement {
+public:
+    void setTest(std::unique_ptr<Test> test);
+    void setStatement(std::unique_ptr<Statement> stmts);
+    llvm::Value* codegen() override;
+
+private:
+    std::unique_ptr<Test> _test;
+    std::unique_ptr<Statement> _stmts;
+};
+
+class PrintlnStatement : public Statement {
+public:
+    void setExpr(std::unique_ptr<Expr> expr);
+    llvm::Value* codegen() override;
+
+private:
+    std::unique_ptr<Expr> _expr;
+};
+
+class DeleteStatement : public Statement {
+public:
+    void setExpr(std::unique_ptr<Expr> expr);
+    llvm::Value* codegen() override;
+
+private:
+    std::unique_ptr<Expr> _expr;
 };
 
 } // namespace wlp4::ast
