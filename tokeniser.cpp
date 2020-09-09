@@ -13,7 +13,7 @@
 namespace wlp4 {
 
 bool isTerminal(Symbol sym) {
-    return sym >= 0 && sym <= 32;
+    return sym >= Symbol::ID && sym <= Symbol::NULL_S;
 }
 
 void Tokeniser::loadFile(const char* filename, State& state) {
@@ -32,31 +32,31 @@ void Tokeniser::loadFile(const char* filename, State& state) {
                 ch = fs.get();
                 continue;
             } else if (ch == '(') {
-                state.addToken(Token{LPAREN, col, line, "("});
+                state.addToken(Token{Symbol::LPAREN, col, line, "("});
             } else if (ch == ')') {
-                state.addToken(Token{RPAREN, col, line, ")"});
+                state.addToken(Token{Symbol::RPAREN, col, line, ")"});
             } else if (ch == '{') {
-                state.addToken(Token{LBRACE, col, line, "{"});
+                state.addToken(Token{Symbol::LBRACE, col, line, "{"});
             } else if (ch == '}') {
-                state.addToken(Token{RBRACE, col, line, "}"});
+                state.addToken(Token{Symbol::RBRACE, col, line, "}"});
             } else if (ch == '+') {
-                state.addToken(Token{PLUS, col, line, "+"});
+                state.addToken(Token{Symbol::PLUS, col, line, "+"});
             } else if (ch == '-') {
-                state.addToken(Token{MINUS, col, line, "-"});
+                state.addToken(Token{Symbol::MINUS, col, line, "-"});
             } else if (ch == '*') {
-                state.addToken(Token{STAR, col, line, "*"});
+                state.addToken(Token{Symbol::STAR, col, line, "*"});
             } else if (ch == '%') {
-                state.addToken(Token{PCT, col, line, "%"});
+                state.addToken(Token{Symbol::PCT, col, line, "%"});
             } else if (ch == ',') {
-                state.addToken(Token{COMMA, col, line, ","});
+                state.addToken(Token{Symbol::COMMA, col, line, ","});
             } else if (ch == ';') {
-                state.addToken(Token{SEMI, col, line, ";"});
+                state.addToken(Token{Symbol::SEMI, col, line, ";"});
             } else if (ch == '[') {
-                state.addToken(Token{LBRACK, col, line, "["});
+                state.addToken(Token{Symbol::LBRACK, col, line, "["});
             } else if (ch == ']') {
-                state.addToken(Token{RBRACK, col, line, "]"});
+                state.addToken(Token{Symbol::RBRACK, col, line, "]"});
             } else if (ch == '&') {
-                state.addToken(Token{AMP, col, line, "&"});
+                state.addToken(Token{Symbol::AMP, col, line, "&"});
             } else if (ch == '/') {
                 ch = fs.get();
                 if (ch == '/') {
@@ -66,38 +66,38 @@ void Tokeniser::loadFile(const char* filename, State& state) {
                     }
                     fs.unget();
                 } else {
-                    state.addToken(Token{SLASH, col, line, "/"});
+                    state.addToken(Token{Symbol::SLASH, col, line, "/"});
                     fs.unget();
                 }
             } else if (ch == '=') {
                 ch = fs.get();
                 if (ch == '=') {
-                    state.addToken(Token{EQ, col, line, "=="});
+                    state.addToken(Token{Symbol::EQ, col, line, "=="});
                 } else {
-                    state.addToken(Token{BECOMES, col, line, "="});
+                    state.addToken(Token{Symbol::BECOMES, col, line, "="});
                     fs.unget();
                 }
             } else if (ch == '!') {
                 ch = fs.get();
                 if (ch == '=') {
-                    state.addToken(Token{NE, col, line, "!="});
+                    state.addToken(Token{Symbol::NE, col, line, "!="});
                 } else {
                     throw std::logic_error("Invalid token"); // FIXME: More descriptive error message
                 }
             } else if (ch == '<') {
                 ch = fs.get();
                 if (ch == '=') {
-                    state.addToken(Token{LE, col, line, "<="});
+                    state.addToken(Token{Symbol::LE, col, line, "<="});
                 } else {
-                    state.addToken(Token{LT, col, line, "<"});
+                    state.addToken(Token{Symbol::LT, col, line, "<"});
                     fs.unget();
                 }
             } else if (ch == '>') {
                 ch = fs.get();
                 if (ch == '=') {
-                    state.addToken(Token{GE, col, line, ">="});
+                    state.addToken(Token{Symbol::GE, col, line, ">="});
                 } else {
-                    state.addToken(Token{GT, col, line, ">"});
+                    state.addToken(Token{Symbol::GT, col, line, ">"});
                     fs.unget();
                 }
             } else if (isalpha(ch)) {
@@ -109,27 +109,27 @@ void Tokeniser::loadFile(const char* filename, State& state) {
                 }
                 fs.unget();
                 if (constructedToken == "return") {
-                    state.addToken(Token{RETURN, col, line, constructedToken});
+                    state.addToken(Token{Symbol::RETURN, col, line, constructedToken});
                 } else if (constructedToken == "if") {
-                    state.addToken(Token{IF, col, line, constructedToken});
+                    state.addToken(Token{Symbol::IF, col, line, constructedToken});
                 } else if (constructedToken == "else") {
-                    state.addToken(Token{ELSE, col, line, constructedToken});
+                    state.addToken(Token{Symbol::ELSE, col, line, constructedToken});
                 } else if (constructedToken == "while") {
-                    state.addToken(Token{WHILE, col, line, constructedToken});
+                    state.addToken(Token{Symbol::WHILE, col, line, constructedToken});
                 } else if (constructedToken == "println") {
-                    state.addToken(Token{PRINTLN, col, line, constructedToken});
+                    state.addToken(Token{Symbol::PRINTLN, col, line, constructedToken});
                 } else if (constructedToken == "wain") {
-                    state.addToken(Token{WAIN, col, line, constructedToken});
+                    state.addToken(Token{Symbol::WAIN, col, line, constructedToken});
                 } else if (constructedToken == "int") {
-                    state.addToken(Token{INT, col, line, constructedToken});
+                    state.addToken(Token{Symbol::INT, col, line, constructedToken});
                 } else if (constructedToken == "new") {
-                    state.addToken(Token{NEW, col, line, constructedToken});
+                    state.addToken(Token{Symbol::NEW, col, line, constructedToken});
                 } else if (constructedToken == "delete") {
-                    state.addToken(Token{DELETE, col, line, constructedToken});
+                    state.addToken(Token{Symbol::DELETE, col, line, constructedToken});
                 } else if (constructedToken == "NULL") {
-                    state.addToken(Token{NULL_S, col, line, constructedToken});
+                    state.addToken(Token{Symbol::NULL_S, col, line, constructedToken});
                 } else {
-                    state.addToken(Token{ID, col, line, constructedToken});
+                    state.addToken(Token{Symbol::ID, col, line, constructedToken});
                 }
                 col += constructedToken.length();
                 constructedToken.clear();
@@ -148,7 +148,7 @@ void Tokeniser::loadFile(const char* filename, State& state) {
                     throw std::logic_error("Number value exceeds the maximum allowed limit");
                 }
                 col += constructedToken.length();
-                state.addToken(Token{NUM, col, line, constructedToken});
+                state.addToken(Token{Symbol::NUM, col, line, constructedToken});
 
                 constructedToken.clear();
             } else {

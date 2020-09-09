@@ -16,7 +16,6 @@ public:
     explicit State(const char* name);
     ~State() = default;
 
-    void setFilename(const char* name);
     const auto& filename() const;
 
     void addToken(Token token);

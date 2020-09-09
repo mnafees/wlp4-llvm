@@ -1,7 +1,7 @@
 #ifndef __WLP4_LLVM_SYMBOL
 #define __WLP4_LLVM_SYMBOL
 
-enum Symbol {
+enum class Symbol : unsigned char {
     // terminal symbols
     ID, NUM, LPAREN, RPAREN, LBRACE, RBRACE, RETURN, IF, ELSE,
     WHILE, PRINTLN, WAIN, BECOMES, INT, EQ, NE, LT, GT, LE, GE,

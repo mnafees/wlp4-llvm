@@ -12,6 +12,10 @@
 
 namespace wlp4 {
 
+namespace ast {
+class Expr;
+} // namespace ast
+
 class State;
 
 using Rule = std::pair<const Symbol, std::vector<Symbol>>;
@@ -64,6 +68,7 @@ private:
     void populateProcedureNames(const State& globalState);
     void cleanupChart();
     void generateAST(State& globalState);
+    std::pair<std::size_t, std::unique_ptr<ast::Expr>> parseExpr(std::size_t currElemListIdx);
 
     Chart _chart;
     std::map<Symbol, bool> _nullable;
