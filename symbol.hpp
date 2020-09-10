@@ -1,6 +1,8 @@
 #ifndef __WLP4_LLVM_SYMBOL
 #define __WLP4_LLVM_SYMBOL
 
+namespace wlp4 {
+
 enum class Symbol : unsigned char {
     // terminal symbols
     ID, NUM, LPAREN, RPAREN, LBRACE, RBRACE, RETURN, IF, ELSE,
@@ -16,5 +18,7 @@ enum class Symbol : unsigned char {
     // dummy start state
     start
 };
+
+} // namespace wlp4
 
 #endif // __WLP4_LLVM_SYMBOL

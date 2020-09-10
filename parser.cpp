@@ -2,10 +2,8 @@
 #include "parser.hpp"
 
 // STL
-#include <array>
 #include <fstream>
 #include <sstream>
-#include <stack>
 #include <stdexcept>
 #include <iostream>
 
@@ -97,21 +95,6 @@ std::map<Symbol, std::string> symToStr = {
 };
 #endif
 
-Elem::Elem(std::size_t ruleIdx, std::size_t startIdx, std::size_t dot)
-    : _ruleIdx(ruleIdx), _startIdx(startIdx), _dot(dot) {}
-
-std::size_t Elem::ruleIdx() const {
-    return _ruleIdx;
-}
-
-std::size_t Elem::startIdx() const {
-    return _startIdx;
-}
-
-std::size_t Elem::dot() const {
-    return _dot;
-}
-
 Symbol Elem::nextSymbol() const {
     return CFG[_ruleIdx].second[_dot];
 }
@@ -163,8 +146,8 @@ void Parser::parse(State& globalState) {
     }
 
     if (_chart.size() - 1 == globalState.numTokens()) {
-        populateProcedureNames(globalState);
-        cleanupChart();
+        // populateProcedureNames(globalState);
+        // cleanupChart();
         // generateAST(globalState);
     } else {
         throw std::runtime_error("Invalid WLP4 code");
@@ -299,17 +282,17 @@ void Parser::completer(std::size_t k) {
     }
 }
 
-void Parser::populateProcedureNames(const State& globalState) {
-    for (std::size_t i = _chart.size() - 1; i > 0;) {
-        for (const auto& el : _chart[i]) {
-            if (CFG[el->ruleIdx()].first == Symbol::procedure || CFG[el->ruleIdx()].first == Symbol::main_s) {
-                _procedureNames.emplace_front(globalState.getToken(el->startIdx() + 1).value);
-                i = el->startIdx();
-                break;
-            }
-        }
-    }
-}
+// void Parser::populateProcedureNames(const State& globalState) {
+//     for (std::size_t i = _chart.size() - 1; i > 0;) {
+//         for (const auto& el : _chart[i]) {
+//             if (CFG[el->ruleIdx()].first == Symbol::procedure || CFG[el->ruleIdx()].first == Symbol::main_s) {
+//                 _procedureNames.emplace_front(globalState.getToken(el->startIdx() + 1).value);
+//                 i = el->startIdx();
+//                 break;
+//             }
+//         }
+//     }
+// }
 
 void Parser::cleanupChart() {
     // Iterate and keep only complete elems and elem lists
@@ -349,58 +332,57 @@ void Parser::cleanupChart() {
 #endif
 }
 
-void Parser::generateAST(State& globalState) {
-    std::stack<Symbol> nonTerminals;
-    ast::Procedure* proc = nullptr;
-    for (auto i = _chart.size() - 1; i > 0;) {
-        for (const auto& el : _chart[i]) {
-            if (CFG[el->ruleIdx()].first == Symbol::procedure || CFG[el->ruleIdx()].first == Symbol::main_s) {
-                for (const auto& sym : CFG[el->ruleIdx()].second) {
-                    if (!isTerminal(sym)) {
-                        nonTerminals.push(sym);
-                    }
-                }
-                proc = new ast::Procedure(globalState.getToken(el->startIdx() + 1).value);
-            } else if (!nonTerminals.empty()) {
-                auto sym = nonTerminals.top();
-                if (sym == Symbol::expr) {
-                    auto [j, parsedExpr] = parseExpr(i);
-                    proc->setReturnExpr(std::move(parsedExpr));
-                    i = j;
-                } else if (sym == Symbol::statements) {
+// void Parser::generateAST(State& globalState) {
+//     ast::Procedure* proc = nullptr;
+//     for (auto i = _chart.size() - 1; i > 0;) {
+//         for (const auto& el : _chart[i]) {
+//             if (CFG[el->ruleIdx()].first == Symbol::procedure || CFG[el->ruleIdx()].first == Symbol::main_s) {
+//                 for (const auto& sym : CFG[el->ruleIdx()].second) {
+//                     if (!isTerminal(sym)) {
+//                         _symbolStack.push(sym);
+//                     }
+//                 }
+//                 proc = new ast::Procedure(globalState.getToken(el->startIdx() + 1).value);
+//             } else if (!_symbolStack.empty()) {
+//                 auto sym = _symbolStack.top();
+//                 if (sym == Symbol::expr) {
+//                     auto [j, parsedExpr] = generateExpr(i);
+//                     proc->setReturnExpr(std::move(parsedExpr));
+//                     i = j;
+//                 } else if (sym == Symbol::statements) {
 
-                } else if (sym == Symbol::dcls) {
+//                 } else if (sym == Symbol::dcls) {
 
-                } else if (sym == Symbol::dcl) {
-                    assert(proc->isWain());
-                } else if (sym == Symbol::params) {
-                    assert(!proc->isWain());
-                } else {
-                    // this should never occur
-                    throw std::runtime_error("Non-terminal stack seems to be corrupted");
-                }
-                nonTerminals.pop();
-            }
-        }
-        if (nonTerminals.empty() && proc) {
-            globalState.addProcedure(std::unique_ptr<ast::Procedure>(proc));
-            proc = nullptr;
-        }
-    }
-}
+//                 } else if (sym == Symbol::dcl) {
+//                     assert(proc->isWain());
+//                 } else if (sym == Symbol::params) {
+//                     assert(!proc->isWain());
+//                 } else {
+//                     // this should never occur
+//                     throw std::runtime_error("Non-terminal stack seems to be corrupted");
+//                 }
+//                 nonTerminals.pop();
+//             }
+//         }
+//         if (_symbolStack.empty() && proc) {
+//             globalState.addProcedure(std::unique_ptr<ast::Procedure>(proc));
+//             proc = nullptr;
+//         }
+//     }
+// }
 
-std::pair<std::size_t, std::unique_ptr<ast::Expr>> Parser::parseExpr(std::size_t currElemListIdx) {
-    assert(currElemListIdx > 0 && currElemListIdx < _chart.size());
+// std::pair<std::size_t, std::unique_ptr<ast::Expr>> Parser::generateExpr(std::size_t currElemListIdx) {
+//     assert(currElemListIdx > 0 && currElemListIdx < _chart.size());
 
-    auto i = currElemListIdx;
-    ast::Expr* parsedExpr = nullptr;
-    for (; i > 0; --i) {
-        for (const auto& el : _chart[i]) {
+//     auto i = currElemListIdx;
+//     ast::Expr* parsedExpr = nullptr;
+//     for (; i > 0; --i) {
+//         for (const auto& el : _chart[i]) {
 
-        }
-    }
+//         }
+//     }
 
-    return std::make_pair(i, std::unique_ptr<ast::Expr>(parsedExpr));
-}
+//     return std::make_pair(i, std::unique_ptr<ast::Expr>(parsedExpr));
+// }
 
 } // namespace wlp4

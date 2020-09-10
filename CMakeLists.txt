@@ -17,8 +17,10 @@ llvm_map_components_to_libnames(llvm_libs support core)
 set(HDRS
     state.hpp
     token.hpp
+    elem.hpp
     tokeniser.hpp
     parser.hpp
+    generator.hpp
 
     ast/base.hpp
     ast/dcl.hpp
@@ -26,13 +28,16 @@ set(HDRS
     ast/statement.hpp
     ast/test.hpp
     ast/expr.hpp
+    ast/term.hpp
 )
 
 set(SRCS
     driver.cpp
     state.cpp
+    elem.cpp
     tokeniser.cpp
     parser.cpp
+    generator.cpp
     codegen.cpp
 
     ast/dcl.cpp

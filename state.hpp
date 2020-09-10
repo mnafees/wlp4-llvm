@@ -5,7 +5,8 @@
 #include <list>
 #include <vector>
 
-// WKL4-LLVM
+// WLP4-LLVM
+#include "elem.hpp"
 #include "token.hpp"
 #include "ast/procedure.hpp"
 
@@ -29,6 +30,7 @@ public:
 private:
     std::string _filename;
     std::vector<Token> _tokens;
+    std::vector<std::unique_ptr<Elem>> _chart;
     std::list<std::unique_ptr<ast::Procedure>> _procedures;
 };
 

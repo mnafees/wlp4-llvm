@@ -7,17 +7,20 @@
 
 namespace wlp4::ast {
 
-enum Type { INT, INT_STAR };
+enum class Type { INT, INT_STAR };
 
 class Dcl : public Base {
 public:
-    llvm::Value* codegen() override;
+    Dcl() = default;
+    ~Dcl() = default;
+
     Type type() const;
     void setType(Type type);
     const std::string& id() const;
     void setId(const std::string& id);
     const std::string& value() const;
     void setValue(const std::string& value);
+    llvm::Value* codegen() override;
 
 private:
     Type _type;
