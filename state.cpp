@@ -8,7 +8,7 @@ namespace wlp4 {
 
 State::State(const char* name) : _filename(name) {}
 
-const auto& State::filename() const {
+const std::string& State::filename() const {
     return _filename;
 }
 
@@ -24,23 +24,8 @@ std::size_t State::numTokens() const {
     return _tokens.size();
 }
 
-auto State::hasProcedure(const std::string& name) const {
-    for (const auto& p : _procedures) {
-        if (p->name() == name) {
-            return true;
-        }
-    }
-    return false;
-}
-
-void State::addProcedure(std::unique_ptr<ast::Procedure> procedure) {
-    if (!hasProcedure(procedure->name())) {
-        _procedures.push_front(std::move(procedure));
-    }
-}
-
-const auto& State::getProcedures() const {
-    return _procedures;
+void State::addToFinalChart(std::unique_ptr<Elem> elem) {
+    _chart.push_back(std::move(elem));
 }
 
 } // namespace wlp4

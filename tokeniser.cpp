@@ -16,8 +16,8 @@ bool isTerminal(Symbol sym) {
     return sym >= Symbol::ID && sym <= Symbol::NULL_S;
 }
 
-void Tokeniser::loadFile(const char* filename, State& state) {
-    std::ifstream fs(filename);
+void Tokeniser::tokenise(State& state) {
+    std::ifstream fs(state.filename());
     if (fs.is_open()) {
         unsigned char ch = fs.get();
         std::string constructedToken;
@@ -158,7 +158,7 @@ void Tokeniser::loadFile(const char* filename, State& state) {
             col++;
         }
     } else {
-        throw std::runtime_error("Could not open source file: " + std::string(filename));
+        throw std::runtime_error("Could not open source file: " + state.filename());
     }
 }
 

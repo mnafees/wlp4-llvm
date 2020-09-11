@@ -14,7 +14,7 @@ public:
     Tokeniser() = default;
     ~Tokeniser() = default;
 
-    void loadFile(const char* filename, State& state);
+    void tokenise(State& state);
 };
 
 } // namespace wlp4

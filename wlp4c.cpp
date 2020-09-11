@@ -1,10 +1,9 @@
 // STL
 #include <iostream>
-#include <vector>
 
 // WLP4-LLVM
 #include "state.hpp"
-#include "parser.hpp"
+#include "recogniser.hpp"
 #include "tokeniser.hpp"
 
 int main(int argc, const char* argv[]) {
@@ -16,10 +15,10 @@ int main(int argc, const char* argv[]) {
         wlp4::State state(argv[1]);
 
         wlp4::Tokeniser tokeniser;
-        tokeniser.loadFile(argv[1], state);
+        tokeniser.tokenise(state);
 
-        wlp4::Parser parser;
-        parser.parse(state);
+        wlp4::Recogniser recogniser;
+        recogniser.recognise(state);
     } catch (std::exception& e) {
         std::cerr << "wlp4c: " << e.what() << std::endl
                   << "compilation terminated." << std::endl;

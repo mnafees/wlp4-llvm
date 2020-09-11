@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 
 project(wlp4-llvm)
 
-find_package(LLVM REQUIRED CONFIG)
+find_package(LLVM REQUIRED)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -14,30 +14,16 @@ add_definitions(${LLVM_DEFINITIONS})
 
 llvm_map_components_to_libnames(llvm_libs support core)
 
-set(HDRS
-    state.hpp
-    token.hpp
-    elem.hpp
-    tokeniser.hpp
-    parser.hpp
-    generator.hpp
-
-    ast/base.hpp
-    ast/dcl.hpp
-    ast/procedure.hpp
-    ast/statement.hpp
-    ast/test.hpp
-    ast/expr.hpp
-    ast/term.hpp
-)
-
-set(SRCS
-    driver.cpp
+set(WLP4BASE_SRCS
     state.cpp
     elem.cpp
     tokeniser.cpp
+    recogniser.cpp
+)
+
+set(WLP4C_SRCS
+    wlp4c.cpp
     parser.cpp
-    generator.cpp
     codegen.cpp
 
     ast/dcl.cpp
@@ -45,8 +31,9 @@ set(SRCS
     ast/statement.cpp
 )
 
-set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} "-flto")
+add_library(wlp4base SHARED ${WLP4BASE_SRCS})
 
-add_executable(wlp4c ${HDRS} ${SRCS})
-target_link_libraries(wlp4c ${llvm_libs})
-target_compile_options(wlp4c PUBLIC "-flto")
+add_executable(wlp4check wlp4check.cpp)
+add_executable(wlp4c ${WLP4C_SRCS})
+target_link_libraries(wlp4check wlp4base ${llvm_libs}) # We do not need llvm linkage here
+target_link_libraries(wlp4c wlp4base ${llvm_libs})

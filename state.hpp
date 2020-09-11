@@ -3,12 +3,12 @@
 
 // STL
 #include <list>
+#include <memory>
 #include <vector>
 
 // WLP4-LLVM
 #include "elem.hpp"
 #include "token.hpp"
-#include "ast/procedure.hpp"
 
 namespace wlp4 {
 
@@ -17,21 +17,18 @@ public:
     explicit State(const char* name);
     ~State() = default;
 
-    const auto& filename() const;
+    const std::string& filename() const;
 
     void addToken(Token token);
     const Token& getToken(std::size_t idx) const;
     std::size_t numTokens() const;
 
-    auto hasProcedure(const std::string& name) const;
-    void addProcedure(std::unique_ptr<ast::Procedure> procedure);
-    const auto& getProcedures() const;
+    void addToFinalChart(std::unique_ptr<Elem> elem);
 
 private:
     std::string _filename;
     std::vector<Token> _tokens;
     std::vector<std::unique_ptr<Elem>> _chart;
-    std::list<std::unique_ptr<ast::Procedure>> _procedures;
 };
 
 } // namespace wlp4
