@@ -1,26 +1,28 @@
 #ifndef __WLP4_LLVM_AST_DCL
 #define __WLP4_LLVM_AST_DCL
 
+// STL
 #include <string>
 
-#include "base.hpp"
+// WLP4-LLVM
+#include "astfwd.hpp"
 
 namespace wlp4::ast {
 
 enum class Type { INT, INT_STAR };
 
-class Dcl : public Base {
+class Dcl {
 public:
-    Dcl() = default;
-    ~Dcl() = default;
-
-    Type type() const;
+    auto type() const;
     void setType(Type type);
+
     const std::string& id() const;
-    void setId(const std::string& id);
-    const std::string& value() const;
-    void setValue(const std::string& value);
-    llvm::Value* codegen() override;
+    void setId(std::string id);
+
+    const auto& value() const;
+    void setValue(std::string value);
+
+    llvm::Value* codegen();
 
 private:
     Type _type;

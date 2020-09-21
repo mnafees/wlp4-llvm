@@ -1,10 +1,18 @@
+// Self
 #include "procedure.hpp"
+
+// WLP4-LLVM
+#include "dcl.hpp"
+#include "expr.hpp"
+#include "statement.hpp"
 
 namespace wlp4::ast {
 
 Procedure::Procedure(const std::string& name) :
     _name(name)
 {}
+
+Procedure::~Procedure() {}
 
 bool Procedure::isWain() const {
     return _name == "wain";

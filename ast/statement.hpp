@@ -5,25 +5,22 @@
 #include <vector>
 
 // WLP4-LLVM
-#include "base.hpp"
-#include "lvalue.hpp"
-#include "test.hpp"
+#include "astfwd.hpp"
 
 namespace wlp4::ast {
 
-class Statement : public Base {
+class Statement {
 public:
+    virtual ~Statement() {}
     virtual llvm::Value* codegen() = 0;
 };
 
-class LvalueStatement : public Statement {
+class DeleteStatement : public Statement {
 public:
-    void setLvalue(std::unique_ptr<Lvalue> lvalue);
     void setExpr(std::unique_ptr<Expr> expr);
     llvm::Value* codegen() override;
 
 private:
-    std::unique_ptr<Lvalue> _lvalue;
     std::unique_ptr<Expr> _expr;
 };
 
@@ -43,15 +40,15 @@ private:
     std::vector<std::unique_ptr<Statement>> _falseStatements;
 };
 
-class WhileStatement : public Statement {
+class LvalueStatement : public Statement {
 public:
-    void setTest(std::unique_ptr<Test> test);
-    void setStatement(std::unique_ptr<Statement> stmts);
+    void setLvalue(std::unique_ptr<Lvalue> lvalue);
+    void setExpr(std::unique_ptr<Expr> expr);
     llvm::Value* codegen() override;
 
 private:
-    std::unique_ptr<Test> _test;
-    std::unique_ptr<Statement> _stmts;
+    std::unique_ptr<Lvalue> _lvalue;
+    std::unique_ptr<Expr> _expr;
 };
 
 class PrintlnStatement : public Statement {
@@ -63,13 +60,15 @@ private:
     std::unique_ptr<Expr> _expr;
 };
 
-class DeleteStatement : public Statement {
+class WhileStatement : public Statement {
 public:
-    void setExpr(std::unique_ptr<Expr> expr);
+    void setTest(std::unique_ptr<Test> test);
+    void setStatement(std::unique_ptr<Statement> stmts);
     llvm::Value* codegen() override;
 
 private:
-    std::unique_ptr<Expr> _expr;
+    std::unique_ptr<Test> _test;
+    std::unique_ptr<Statement> _stmts;
 };
 
 } // namespace wlp4::ast

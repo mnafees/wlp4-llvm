@@ -2,8 +2,9 @@
 #include <iostream>
 
 // WLP4-LLVM
-#include "state.hpp"
+#include "parser.hpp"
 #include "recogniser.hpp"
+#include "state.hpp"
 #include "tokeniser.hpp"
 
 int main(int argc, const char* argv[]) {
@@ -19,6 +20,9 @@ int main(int argc, const char* argv[]) {
 
         wlp4::Recogniser recogniser;
         recogniser.recognise(state);
+
+        wlp4::Parser parser(state);
+        parser.parse();
     } catch (std::exception& e) {
         std::cerr << "wlp4c: " << e.what() << std::endl
                   << "compilation terminated." << std::endl;

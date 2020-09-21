@@ -5,24 +5,28 @@
 #include <memory>
 
 // WLP4-LLVM
-#include "base.hpp"
-#include "term.hpp"
+#include "astfwd.hpp"
 
 namespace wlp4::ast {
 
-class Expr : public Base {
+class Expr {
 public:
     enum class Op : unsigned char { NONE, PLUS, MINUS }; // FIXME: Reuse from Symbol?
 
-    explicit Expr(std::unique_ptr<Term> term) : _term(std::move(term)), _op(Op::NONE), _leftExpr(nullptr) {}
-    ~Expr() = default;
+    explicit Expr(std::unique_ptr<Term> term);
+    ~Expr();
 
-    void setPlusWith(std::unique_ptr<Expr> expr) { _leftExpr = std::move(expr); _op = Op::PLUS; }
-    void setMinusWith(std::unique_ptr<Expr> expr) { _leftExpr = std::move(expr); _op = Op::MINUS; }
-    const auto& leftExpr() const { return _leftExpr; }
-    Op op() const { return _op; }
+    void setPlusWith(std::unique_ptr<Expr> expr);
 
-    llvm::Value* codegen() override;
+    void setMinusWith(std::unique_ptr<Expr> expr);
+
+    const auto& term() const;
+
+    const auto& leftExpr() const;
+
+    Op op() const;
+
+    llvm::Value* codegen();
 
 private:
     std::unique_ptr<Term> _term;

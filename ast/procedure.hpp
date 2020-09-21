@@ -1,21 +1,21 @@
 #ifndef __WLP4_LLVM_AST_PROCEDURE
 #define __WLP4_LLVM_AST_PROCEDURE
 
-#include "base.hpp"
-#include "dcl.hpp"
-#include "statement.hpp"
-#include "expr.hpp"
-
+// STL
 #include <memory>
 #include <vector>
 
+// WLP4-LLVM
+#include "astfwd.hpp"
+
 namespace wlp4::ast {
 
-class Procedure : public Base {
+class Procedure {
 public:
     explicit Procedure(const std::string& name);
+    ~Procedure();
 
-    llvm::Value* codegen() override;
+    llvm::Value* codegen();
     bool isWain() const;
     const std::string& name() const;
     void addParam(std::unique_ptr<Dcl> dcl);

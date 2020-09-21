@@ -1,8 +1,9 @@
+// Self
 #include "dcl.hpp"
 
 namespace wlp4::ast {
 
-Type Dcl::type() const {
+auto Dcl::type() const {
     return _type;
 }
 
@@ -14,16 +15,16 @@ const std::string& Dcl::id() const {
     return _id;
 }
 
-void Dcl::setId(const std::string& id) {
-    _id = id;
+void Dcl::setId(std::string id) {
+    _id = std::move(id);
 }
 
-const std::string& Dcl::value() const {
+const auto& Dcl::value() const {
     return _value;
 }
 
-void Dcl::setValue(const std::string& value) {
-    _value = value;
+void Dcl::setValue(std::string value) {
+    _value = std::move(value);
 }
 
 } // namespace wlp4::ast

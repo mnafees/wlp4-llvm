@@ -3,34 +3,31 @@
 
 // STL
 #include <memory>
-#include <optional>
 #include <string>
 #include <variant>
 
+// WLP4-LLVM
+#include "astfwd.hpp"
+
 namespace wlp4::ast {
 
-class Expr;
-class Lvalue;
-class Arglist;
+using FactorType = std::variant<std::monostate,
+                                std::string,
+                                unsigned int,
+                                void*,
+                                std::unique_ptr<Expr>,
+                                std::unique_ptr<Lvalue>,
+                                std::unique_ptr<Factor>,
+                                std::unique_ptr<Arglist>>;
 
 class Factor {
 public:
-    Factor() = default;
-    ~Factor() = default;
+    explicit Factor(std::string id);
 
-    template<typename T>
-    std::optional<T> get() const {
-        if (std::holds_alternative<T>(_data)) {
-            return std::get<T>(_data);
-        }
-        return std::nullopt;
-    }
+    llvm::Value* codegen();
 
 private:
-    std::variant<std::monostate, std::string, unsigned int, void*, Expr, Lvalue, Factor> _data;
-    std::optional<bool> _parenExpr;
-    std::optional<bool> _newIntExpr;
-    std::optional<Arglist> _arglist;
+    std::string _id;
 };
 
 } // namespace wlp4::ast

@@ -1,14 +1,14 @@
 #ifndef __WLP4_LLVM_AST_TEST
 #define __WLP4_LLVM_AST_TEST
 
-#include "base.hpp"
-#include "expr.hpp"
+// WLP4-LLVM
+#include "astfwd.hpp"
 
 namespace wlp4::ast {
 
 using TestType = int; // reuse token enum values
 
-class Test : public Base {
+class Test {
 public:
     void setType(TestType type) { _type = type; }
     TestType type() const { return _type; }
@@ -16,7 +16,7 @@ public:
     std::unique_ptr<Expr> leftExpr() { return std::move(_leftExpr); }
     void setRightExpr(std::unique_ptr<Expr> expr) { _rightExpr = std::move(expr); }
     std::unique_ptr<Expr> rightExpr() { return std::move(_rightExpr); }
-    llvm::Value* codegen() override;
+    llvm::Value* codegen();
 
 private:
     TestType _type;
