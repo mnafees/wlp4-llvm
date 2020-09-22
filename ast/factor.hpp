@@ -11,10 +11,12 @@
 
 namespace wlp4::ast {
 
+struct NullType {};
+
 using FactorType = std::variant<std::monostate,
                                 std::string,
                                 unsigned int,
-                                void*,
+                                NullType,
                                 std::unique_ptr<Expr>,
                                 std::unique_ptr<Lvalue>,
                                 std::unique_ptr<Factor>,
@@ -23,11 +25,18 @@ using FactorType = std::variant<std::monostate,
 class Factor {
 public:
     explicit Factor(std::string id);
+    explicit Factor(unsigned int num);
+    explicit Factor(NullType nullType);
+    explicit Factor(std::unique_ptr<Expr> expr);
+    explicit Factor(std::unique_ptr<Lvalue> lvalue);
+    explicit Factor(std::unique_ptr<Factor> factor);
+    explicit Factor(std::unique_ptr<Arglist> arglist);
+    ~Factor();
 
     llvm::Value* codegen();
 
 private:
-    std::string _id;
+    FactorType _value;
 };
 
 } // namespace wlp4::ast

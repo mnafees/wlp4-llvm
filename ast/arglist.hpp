@@ -13,6 +13,7 @@ class Arglist {
 public:
     explicit Arglist(std::unique_ptr<Expr> expr);
     explicit Arglist(std::unique_ptr<Arglist> arglist);
+    ~Arglist();
 
     void setExpr(std::unique_ptr<Expr> expr);
     const auto& expr() const;

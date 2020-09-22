@@ -13,15 +13,14 @@ class Term {
 public:
     enum class Op : unsigned char { NONE, STAR, SLASH, PCT }; // FIXME: Reuse from Symbol?
 
-    explicit Term(std::unique_ptr<Factor> factor) : _factor(std::move(factor)), _op(Op::NONE), _leftTerm(nullptr) {}
-    ~Term() = default;
+    explicit Term(std::unique_ptr<Factor> factor);
 
-    void setStarWith(std::unique_ptr<Term> term) { _leftTerm = std::move(term); _op = Op::STAR; }
-    void setSlashWith(std::unique_ptr<Term> term) { _leftTerm = std::move(term); _op = Op::SLASH; }
-    void setPctWith(std::unique_ptr<Term> term) { _leftTerm = std::move(term); _op = Op::PCT; }
-    const auto& factor() const { return _factor; }
-    const auto& leftTerm() const { return _leftTerm; }
-    Op op() const { return _op; }
+    void setStarWith(std::unique_ptr<Term> term);
+    void setSlashWith(std::unique_ptr<Term> term);
+    void setPctWith(std::unique_ptr<Term> term);
+    const auto& factor() const;
+    const auto& leftTerm() const;
+    Op op() const;
 
     llvm::Value* codegen();
 

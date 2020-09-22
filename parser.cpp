@@ -123,9 +123,10 @@ std::unique_ptr<ast::Factor> Parser::parseFactor() {
         if (rhs[0] == Symbol::ID) {
             factor = new ast::Factor(_state.getToken(_state.finalChart()[_elemIdx]->startIdx()).value);
         } else if (rhs[0] == Symbol::NUM) {
-
+            unsigned int num = std::stoi(_state.getToken(_state.finalChart()[_elemIdx]->startIdx()).value);
+            factor = new ast::Factor(num);
         } else if (rhs[0] == Symbol::NULL_S) {
-
+            factor = new ast::Factor(ast::NullType());
         }
     }
     _symbolStack.pop();

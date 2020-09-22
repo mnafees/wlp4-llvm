@@ -7,8 +7,8 @@ This project is based on the language specification available at https://www.stu
 A tutorial is also available at https://www.student.cs.uwaterloo.ca/~cs241/wlp4/WLP4tutorial.html
 
 ## Requirements
-- CMake >= 3.16
-- A C++ compiler that supports C++14
+- CMake >= 3.12
+- A C++ compiler that supports C++17
 - LLVM >= 8
 
 ## Build

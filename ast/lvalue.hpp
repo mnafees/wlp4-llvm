@@ -1,13 +1,12 @@
 #ifndef __WLP4_LLVM_AST_LVALUE
 #define __WLP4_LLVM_AST_LVALUE
 
-// STL
-#include <memory>
-#include <string>
-
 namespace wlp4::ast {
 
-struct Lvalue {};
+class Lvalue {
+public:
+    ~Lvalue();
+};
 
 } // namespace wlp4::ast
 
