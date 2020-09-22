@@ -27,7 +27,7 @@ private:
 class IfStatement : public Statement {
 public:
     void setTest(std::unique_ptr<Test> test);
-    std::unique_ptr<Test> test() { return std::move(_test); }
+    const std::unique_ptr<Test>& test();
     void addTrueStatement(std::unique_ptr<Statement> stmt);
     const std::vector<std::unique_ptr<Statement>>& trueStatements() { return _trueStatements; }
     void addFalseStatement(std::unique_ptr<Statement> stmt);
@@ -42,6 +42,8 @@ private:
 
 class LvalueStatement : public Statement {
 public:
+    ~LvalueStatement();
+
     void setLvalue(std::unique_ptr<Lvalue> lvalue);
     void setExpr(std::unique_ptr<Expr> expr);
     llvm::Value* codegen() override;
@@ -63,12 +65,12 @@ private:
 class WhileStatement : public Statement {
 public:
     void setTest(std::unique_ptr<Test> test);
-    void setStatement(std::unique_ptr<Statement> stmts);
+    void addStatement(std::unique_ptr<Statement> stmt);
     llvm::Value* codegen() override;
 
 private:
     std::unique_ptr<Test> _test;
-    std::unique_ptr<Statement> _stmts;
+    std::vector<std::unique_ptr<Statement>> _stmts;
 };
 
 } // namespace wlp4::ast

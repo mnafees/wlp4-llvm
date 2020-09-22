@@ -8,8 +8,8 @@
 
 namespace wlp4::ast {
 
-Procedure::Procedure(const std::string& name) :
-    _name(name)
+Procedure::Procedure(std::string name) :
+    _name(std::move(name))
 {}
 
 Procedure::~Procedure() {}

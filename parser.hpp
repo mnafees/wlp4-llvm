@@ -27,6 +27,11 @@ private:
     std::unique_ptr<ast::Expr> parseExpr();
     std::unique_ptr<ast::Term> parseTerm();
     std::unique_ptr<ast::Factor> parseFactor();
+    std::unique_ptr<ast::Lvalue> parseLvalue();
+    std::unique_ptr<ast::Arglist> parseArglist();
+    bool parseStatements();
+    std::unique_ptr<ast::Statement> parseStatement();
+    std::unique_ptr<ast::Test> parseTest();
 };
 
 } // namespace wlp4

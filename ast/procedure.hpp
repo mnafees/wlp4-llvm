@@ -12,7 +12,7 @@ namespace wlp4::ast {
 
 class Procedure {
 public:
-    explicit Procedure(const std::string& name);
+    explicit Procedure(std::string name);
     ~Procedure();
 
     llvm::Value* codegen();

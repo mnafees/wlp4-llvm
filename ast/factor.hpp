@@ -24,6 +24,7 @@ using FactorType = std::variant<std::monostate,
 
 class Factor {
 public:
+    Factor();
     explicit Factor(std::string id);
     explicit Factor(unsigned int num);
     explicit Factor(NullType nullType);
@@ -33,10 +34,17 @@ public:
     explicit Factor(std::unique_ptr<Arglist> arglist);
     ~Factor();
 
+    void setProcedureCall(std::string name);
+    void setParenExpr();
+    void setNewIntExpr();
+
     llvm::Value* codegen();
 
 private:
     FactorType _value;
+    std::string _procedureName;
+    bool _procedureCall;
+    bool _parenExpr;
 };
 
 } // namespace wlp4::ast

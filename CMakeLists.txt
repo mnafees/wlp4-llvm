@@ -34,6 +34,7 @@ set(WLP4C_SRCS
     ast/arglist.cpp
     ast/term.cpp
     ast/lvalue.cpp
+    ast/test.cpp
 )
 
 add_executable(wlp4c ${WLP4C_SRCS})

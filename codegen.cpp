@@ -1,3 +1,4 @@
+// WLP4-LLVM
 #include "ast/procedure.hpp"
 #include "ast/dcl.hpp"
 #include "ast/statement.hpp"
@@ -15,6 +16,22 @@ llvm::Value* Dcl::codegen() {
 }
 
 llvm::Value* IfStatement::codegen() {
+    return nullptr;
+}
+
+llvm::Value* LvalueStatement::codegen() {
+    return nullptr;
+}
+
+llvm::Value* WhileStatement::codegen() {
+    return nullptr;
+}
+
+llvm::Value* PrintlnStatement::codegen() {
+    return nullptr;
+}
+
+llvm::Value* DeleteStatement::codegen() {
     return nullptr;
 }
 
