@@ -32,6 +32,8 @@ private:
     bool parseStatements();
     std::unique_ptr<ast::Statement> parseStatement();
     std::unique_ptr<ast::Test> parseTest();
+    bool parseDcls();
+    std::unique_ptr<ast::Dcl> parseDcl();
 };
 
 } // namespace wlp4

@@ -15,6 +15,7 @@
 #include "ast/arglist.hpp"
 #include "ast/statement.hpp"
 #include "ast/test.hpp"
+#include "ast/dcl.hpp"
 
 namespace wlp4 {
 
@@ -45,9 +46,13 @@ void Parser::parse() {
             if (sym == Symbol::expr) {
                 proc->setReturnExpr(std::move(parseExpr()));
             } else if (sym == Symbol::statements) {
-                parseStatements();
-            } else if (sym == Symbol::statement) {
-                proc->addStatement(std::move(parseStatement()));
+                while (!parseStatements()) {
+                    proc->addStatement(std::move(parseStatement()));
+                }
+            } else if (sym == Symbol::dcls) {
+                while (!parseDcls()) {
+                    proc->addDeclaration(std::move(parseDcl()));
+                }
             }
         }
         if (_symbolStack.empty()) {
@@ -262,6 +267,7 @@ bool Parser::parseStatements() {
         }
     }
     --_elemIdx;
+    _symbolStack.pop();
 
     return emptyStmt;
 }
@@ -347,6 +353,51 @@ std::unique_ptr<ast::Test> Parser::parseTest() {
     _symbolStack.pop();
 
     return std::unique_ptr<ast::Test>(test);
+}
+
+bool Parser::parseDcls() {
+#ifdef DEBUG
+    std::cout << __FUNCTION__ << '\n';
+#endif
+
+    if (_symbolStack.top() != Symbol::dcls) {
+        throw std::runtime_error("Symbol::dcls expected to parse");
+    } else if (CFG[_state.finalChart()[_elemIdx]->ruleIdx()].first != Symbol::dcls) {
+        throw std::runtime_error("Expected lhs Symbol::dcls not found");
+    }
+
+    const auto& rhs = CFG[_state.finalChart()[_elemIdx]->ruleIdx()].second;
+    bool emptyDcls = true;
+    if (!rhs.empty()) {
+        emptyDcls = false;
+        for (std::size_t i = 0; i < rhs.size(); ++i) {
+            if (!isTerminal(rhs[i])) {
+                _symbolStack.push(rhs[i]);
+            }
+        }
+    }
+    --_elemIdx;
+    _symbolStack.pop();
+
+    return emptyDcls;
+}
+
+std::unique_ptr<ast::Dcl> Parser::parseDcl() {
+#ifdef DEBUG
+    std::cout << __FUNCTION__ << '\n';
+#endif
+
+    if (_symbolStack.top() != Symbol::dcl) {
+        throw std::runtime_error("Symbol::dcl expected to parse");
+    } else if (CFG[_state.finalChart()[_elemIdx]->ruleIdx()].first != Symbol::dcl) {
+        throw std::runtime_error("Expected lhs Symbol::dcl not found");
+    }
+
+    const auto& rhs = CFG[_state.finalChart()[_elemIdx]->ruleIdx()].second;
+    auto dcl = new ast::Dcl;
+    dcl->setId(_state.getToken(_state.finalChart()[_elemIdx]->startIdx()).value);
+
+    return std::unique_ptr<ast::Dcl>(dcl);
 }
 
 } // namespace wlp4

@@ -23,16 +23,4 @@ void Expr::setMinusWith(std::unique_ptr<Expr> expr) {
     _op = Op::MINUS;
 }
 
-const auto& Expr::term() const {
-    return _term;
-}
-
-const auto& Expr::leftExpr() const {
-    return _leftExpr;
-}
-
-Expr::Op Expr::op() const {
-    return _op;
-}
-
 } // namespace wlp4::ast

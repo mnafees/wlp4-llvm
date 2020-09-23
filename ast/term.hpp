@@ -18,9 +18,6 @@ public:
     void setStarWith(std::unique_ptr<Term> term);
     void setSlashWith(std::unique_ptr<Term> term);
     void setPctWith(std::unique_ptr<Term> term);
-    const auto& factor() const;
-    const auto& leftTerm() const;
-    Op op() const;
 
     llvm::Value* codegen();
 

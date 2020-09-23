@@ -59,5 +59,14 @@ void Factor::setNewIntExpr() {
     _parenExpr = false;
 }
 
+DclType Factor::type() const {
+    if (std::holds_alternative<unsigned int>(_value)) {
+        return DclType::INT;
+    } else if (std::holds_alternative<NullType>(_value)) {
+        return DclType::INT_STAR;
+    } else if (std::holds_alternative<std::string>(_value)) {
+
+    }
+}
 
 } // namespace wlp4::ast

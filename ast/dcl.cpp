@@ -7,7 +7,7 @@ auto Dcl::type() const {
     return _type;
 }
 
-void Dcl::setType(Type type) {
+void Dcl::setType(DclType type) {
     _type = type;
 }
 

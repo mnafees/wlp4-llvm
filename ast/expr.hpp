@@ -20,12 +20,6 @@ public:
 
     void setMinusWith(std::unique_ptr<Expr> expr);
 
-    const auto& term() const;
-
-    const auto& leftExpr() const;
-
-    Op op() const;
-
     llvm::Value* codegen();
 
 private:

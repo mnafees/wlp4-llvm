@@ -8,10 +8,9 @@
 
 // WLP4-LLVM
 #include "astfwd.hpp"
+#include "type.hpp"
 
 namespace wlp4::ast {
-
-struct NullType {};
 
 using FactorType = std::variant<std::monostate,
                                 std::string,
@@ -37,6 +36,8 @@ public:
     void setProcedureCall(std::string name);
     void setParenExpr();
     void setNewIntExpr();
+
+    DclType type() const;
 
     llvm::Value* codegen();
 

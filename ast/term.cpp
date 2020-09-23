@@ -26,16 +26,4 @@ void Term::setPctWith(std::unique_ptr<Term> term) {
     _op = Op::PCT;
 }
 
-const auto& Term::factor() const {
-    return _factor;
-}
-
-const auto& Term::leftTerm() const {
-    return _leftTerm;
-}
-
-Term::Op Term::op() const {
-    return _op;
-}
-
 }

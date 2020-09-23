@@ -4,17 +4,18 @@
 // STL
 #include <string>
 
+// LLVM
+#include "llvm/IR/Value.h"
+
 // WLP4-LLVM
-#include "astfwd.hpp"
+#include "type.hpp"
 
 namespace wlp4::ast {
-
-enum class Type { INT, INT_STAR };
 
 class Dcl {
 public:
     auto type() const;
-    void setType(Type type);
+    void setType(DclType type);
 
     const std::string& id() const;
     void setId(std::string id);
@@ -25,7 +26,7 @@ public:
     llvm::Value* codegen();
 
 private:
-    Type _type;
+    DclType _type;
     std::string _id;
     std::string _value;
 };
