@@ -7,6 +7,7 @@
 
 // WLP4-LLVM
 #include "astfwd.hpp"
+#include "type.hpp"
 
 namespace wlp4::ast {
 
@@ -17,12 +18,15 @@ using LvalueType = std::variant<std::monostate,
 
 class Lvalue {
 public:
-    explicit Lvalue(std::string id);
-    explicit Lvalue(std::unique_ptr<Factor> factor);
-    explicit Lvalue(std::unique_ptr<Lvalue> lvalue);
+    Lvalue(std::string procedureName, std::string id);
+    Lvalue(std::string procedureName, std::unique_ptr<Factor> factor);
+    Lvalue(std::string procedureName, std::unique_ptr<Lvalue> lvalue);
     ~Lvalue();
 
+    DclType type() const;
+
 private:
+    std::string _procedureName;
     LvalueType _value;
 };
 

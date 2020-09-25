@@ -12,17 +12,12 @@
 
 namespace wlp4 {
 
-class State;
-
 using Chart = std::vector<std::vector<std::unique_ptr<Elem>>>;
 
 // An Earley Recogniser implementation
 class Recogniser {
 public:
-    Recogniser() = default;
-    ~Recogniser() = default;
-
-    void recognise(State& globalState);
+    void recognise();
 
 private:
     void setupNullableRules();
@@ -37,8 +32,7 @@ private:
     void predictor(Symbol nextSym, std::size_t k, std::size_t l);
     void scanner(Symbol nextSym, std::size_t k);
     void completer(std::size_t k);
-    void populateProcedureNames(State& globalState);
-    void populateFinalChart(State& globalState);
+    void populateFinalChart();
 
     Chart _chart;
     std::map<Symbol, bool> _nullable;

@@ -5,13 +5,12 @@
 #include <list>
 #include <memory>
 #include <vector>
-#ifdef DEBUG
 #include <map>
-#endif
 
 // WLP4-LLVM
 #include "elem.hpp"
 #include "token.hpp"
+#include "ast/type.hpp"
 #include "ast/procedure.hpp"
 
 namespace wlp4 {
@@ -23,9 +22,16 @@ extern std::map<Symbol, std::string> symToStr;
 #endif
 
 class State {
+    State();
 public:
-    explicit State(const char* name);
+    State(const State&) = delete;
+    State(State&&) = delete;
+    State& operator=(const State&) = delete;
+    State& operator=(State&&) = delete;
 
+    static State& instance();
+
+    void setFilename(const char* name);
     const std::string& filename() const;
 
     void addToken(Token token);
@@ -37,11 +43,15 @@ public:
 
     void addProcedure(std::unique_ptr<ast::Procedure> proc);
 
+    void addDclToProc(const std::string& procedureName, const std::string& dclName, ast::DclType dclType);
+    ast::DclType typeForDcl(const std::string& procedureName, const std::string& dclName);
+
 private:
     std::string _filename;
     std::vector<Token> _tokens;
     std::vector<std::unique_ptr<Elem>> _chart;
     std::vector<std::unique_ptr<ast::Procedure>> _procedures;
+    std::map<std::string, std::map<std::string, ast::DclType>> _dclsMap;
 };
 
 } // namespace wlp4

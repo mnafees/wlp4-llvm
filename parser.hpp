@@ -10,17 +10,11 @@
 
 namespace wlp4 {
 
-class State;
-
 class Parser {
 public:
-    explicit Parser(State& state);
-    ~Parser() = default;
-
     void parse();
 
 private:
-    State& _state;
     std::size_t _elemIdx;
     std::stack<Symbol> _symbolStack;
 

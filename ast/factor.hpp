@@ -23,19 +23,18 @@ using FactorType = std::variant<std::monostate,
 
 class Factor {
 public:
-    Factor();
-    explicit Factor(std::string id);
-    explicit Factor(unsigned int num);
-    explicit Factor(NullType nullType);
-    explicit Factor(std::unique_ptr<Expr> expr);
-    explicit Factor(std::unique_ptr<Lvalue> lvalue);
-    explicit Factor(std::unique_ptr<Factor> factor);
-    explicit Factor(std::unique_ptr<Arglist> arglist);
+    explicit Factor(std::string procedureName);
+    Factor(std::string procedureName, std::string id);
+    Factor(std::string procedureName, unsigned int num);
+    Factor(std::string procedureName, NullType nullType);
+    Factor(std::string procedureName, std::unique_ptr<Expr> expr);
+    Factor(std::string procedureName, std::unique_ptr<Lvalue> lvalue);
+    Factor(std::string procedureName, std::unique_ptr<Factor> factor);
+    Factor(std::string procedureName, std::unique_ptr<Arglist> arglist);
     ~Factor();
 
     void setProcedureCall(std::string name);
     void setParenExpr();
-    void setNewIntExpr();
 
     DclType type() const;
 
@@ -44,7 +43,7 @@ public:
 private:
     FactorType _value;
     std::string _procedureName;
-    bool _procedureCall;
+    std::string _callingProcedureName;
     bool _parenExpr;
 };
 

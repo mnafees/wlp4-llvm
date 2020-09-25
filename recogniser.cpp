@@ -25,7 +25,7 @@ bool Elem::isComplete() const {
     return _dot == CFG[_ruleIdx].second.size();
 }
 
-void Recogniser::recognise(State& globalState) {
+void Recogniser::recognise() {
     setupNullableRules();
 
 #ifdef DEBUG
@@ -34,9 +34,9 @@ void Recogniser::recognise(State& globalState) {
     addToChart(0, 0, 0, 0);
 #endif
 
-    for (std::size_t i = 0; i < globalState.numTokens(); ++i) {
+    for (std::size_t i = 0; i < State::instance().numTokens(); ++i) {
         if (i > _chart.size() - 1) {
-            throw std::runtime_error("Invalid token " + globalState.getToken(i - 1).value);
+            throw std::runtime_error("Invalid token " + State::instance().getToken(i - 1).value);
         }
 
         for (std::size_t j = 0; j < _chart[i].size(); ++j) {
@@ -59,7 +59,7 @@ void Recogniser::recognise(State& globalState) {
             } else {
                 const auto nextSym = el->nextSymbol();
                 if (isTerminal(nextSym)) {
-                    scanner(globalState.getToken(i).type, i);
+                    scanner(State::instance().getToken(i).type, i);
                 } else {
                     predictor(nextSym, i, j);
                 }
@@ -67,8 +67,8 @@ void Recogniser::recognise(State& globalState) {
         }
     }
 
-    if (_chart.size() - 1 == globalState.numTokens()) {
-        populateFinalChart(globalState);
+    if (_chart.size() - 1 == State::instance().numTokens()) {
+        populateFinalChart();
     } else {
         throw std::runtime_error("Invalid WLP4 code");
     }
@@ -202,12 +202,12 @@ void Recogniser::completer(std::size_t k) {
     }
 }
 
-void Recogniser::populateFinalChart(State& globalState) {
+void Recogniser::populateFinalChart() {
     // Iterate and keep only complete elems and elem lists
     for (auto it = _chart.begin(); it != _chart.end(); ++it) {
         for (auto elit = it->begin(); elit != it->end(); ++elit) {
             if ((*elit)->isComplete()) {
-                globalState.addToFinalChart(std::move(*elit));
+                State::instance().addToFinalChart(std::move(*elit));
             }
         }
     }

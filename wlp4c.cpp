@@ -13,15 +13,13 @@ int main(int argc, const char* argv[]) {
             throw std::runtime_error("no input file");
         }
 
-        wlp4::State state(argv[1]);
-
         wlp4::Tokeniser tokeniser;
-        tokeniser.tokenise(state);
+        tokeniser.tokenise();
 
         wlp4::Recogniser recogniser;
-        recogniser.recognise(state);
+        recogniser.recognise();
 
-        wlp4::Parser parser(state);
+        wlp4::Parser parser;
         parser.parse();
     } catch (std::exception& e) {
         std::cerr << "wlp4c: " << e.what() << std::endl

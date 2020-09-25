@@ -11,8 +11,7 @@ std::vector<std::pair<Symbol, std::vector<Symbol>>> CFG;
 std::map<Symbol, std::string> symToStr;
 #endif
 
-State::State(const char* name) :
-    _filename(name) {
+State::State()  {
     CFG.push_back({ Symbol::start, { Symbol::procedures } });
     CFG.push_back({ Symbol::procedures, { Symbol::procedure, Symbol::procedures } });
     CFG.push_back({ Symbol::procedures, { Symbol::main_s } });
@@ -90,6 +89,15 @@ State::State(const char* name) :
 #endif
 }
 
+State& State::instance() {
+    static State state;
+    return state;
+}
+
+void State::setFilename(const char* name) {
+    _filename = name;
+}
+
 const std::string& State::filename() const {
     return _filename;
 }
@@ -116,6 +124,18 @@ const std::vector<std::unique_ptr<Elem>>& State::finalChart() const {
 
 void State::addProcedure(std::unique_ptr<ast::Procedure> proc) {
     _procedures.push_back(std::move(proc));
+}
+
+void State::addDclToProc(const std::string& procedureName, const std::string& dclName, ast::DclType dclType) {
+    if (_dclsMap.find(procedureName) == _dclsMap.end()) {
+        _dclsMap[procedureName] = std::map<std::string, ast::DclType>();
+    }
+
+    _dclsMap[procedureName][dclName] = dclType;
+}
+
+ast::DclType State::typeForDcl(const std::string& procedureName, const std::string& dclName) {
+    return _dclsMap[procedureName][dclName];
 }
 
 } // namespace wlp4

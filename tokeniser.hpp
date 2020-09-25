@@ -1,20 +1,11 @@
 #ifndef __WLP4_LLVM_TOKENISER
 #define __WLP4_LLVM_TOKENISER
 
-// STL
-#include <string>
-#include <vector>
-
 namespace wlp4 {
-
-class State;
 
 class Tokeniser {
 public:
-    Tokeniser() = default;
-    ~Tokeniser() = default;
-
-    void tokenise(State& state);
+    void tokenise();
 };
 
 } // namespace wlp4

@@ -3,7 +3,7 @@
 
 namespace wlp4::ast {
 
-auto Dcl::type() const {
+DclType Dcl::type() const {
     return _type;
 }
 

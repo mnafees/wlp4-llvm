@@ -14,7 +14,7 @@ namespace wlp4::ast {
 
 class Dcl {
 public:
-    auto type() const;
+    DclType type() const;
     void setType(DclType type);
 
     const std::string& id() const;

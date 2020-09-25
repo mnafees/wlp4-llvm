@@ -6,6 +6,7 @@
 
 // WLP4-LLVM
 #include "astfwd.hpp"
+#include "type.hpp"
 
 namespace wlp4::ast {
 
@@ -19,6 +20,8 @@ public:
     void setPlusWith(std::unique_ptr<Expr> expr);
 
     void setMinusWith(std::unique_ptr<Expr> expr);
+
+    DclType type() const;
 
     llvm::Value* codegen();
 

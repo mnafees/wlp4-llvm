@@ -19,17 +19,15 @@
 
 namespace wlp4 {
 
-Parser::Parser(State& state) : _state(state) {}
-
 void Parser::parse() {
 #ifdef DEBUG
     std::cout << __FUNCTION__ << '\n';
 #endif
 
     ast::Procedure* proc = nullptr;
-    _elemIdx = _state.finalChart().size() - 1;
+    _elemIdx = State::instance().finalChart().size() - 1;
     for (; _elemIdx >= 0;) {
-        const auto& elem = _state.finalChart()[_elemIdx];
+        const auto& elem = State::instance().finalChart()[_elemIdx];
 #ifdef DEBUG
         std::cout << symToStr[CFG[elem->ruleIdx()].first] << std::endl;
 #endif
@@ -39,7 +37,7 @@ void Parser::parse() {
                     _symbolStack.push(sym);
                 }
             }
-            proc = new ast::Procedure(_state.getToken(elem->startIdx() + 1).value);
+            proc = new ast::Procedure(State::instance().getToken(elem->startIdx() + 1).value);
             --_elemIdx;
         } else if (!_symbolStack.empty()) {
             auto sym = CFG[elem->ruleIdx()].first;
@@ -51,12 +49,14 @@ void Parser::parse() {
                 }
             } else if (sym == Symbol::dcls) {
                 while (!parseDcls()) {
-                    proc->addDeclaration(std::move(parseDcl()));
+                    auto dcl = parseDcl();
+                    State::instance().addDclToProc(proc->name(), dcl->id(), dcl->type());
+                    proc->addDeclaration(std::move(dcl));
                 }
             }
         }
         if (_symbolStack.empty()) {
-            _state.addProcedure(std::unique_ptr<ast::Procedure>(proc));
+            State::instance().addProcedure(std::unique_ptr<ast::Procedure>(proc));
             proc = nullptr;
         }
     }
@@ -69,12 +69,12 @@ std::unique_ptr<ast::Expr> Parser::parseExpr() {
 
     if (_symbolStack.top() != Symbol::expr) {
         throw std::runtime_error("Symbol::expr expected to parse");
-    } else if (CFG[_state.finalChart()[_elemIdx]->ruleIdx()].first != Symbol::expr) {
+    } else if (CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].first != Symbol::expr) {
         throw std::runtime_error("Expected lhs Symbol::expr not found");
     }
 
     ast::Expr* expr = nullptr;
-    const auto& rhs = CFG[_state.finalChart()[_elemIdx]->ruleIdx()].second;
+    const auto& rhs = CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].second;
     for (std::size_t i = 0; i < rhs.size(); ++i) {
         if (!isTerminal(rhs[i])) {
             _symbolStack.push(rhs[i]);
@@ -101,12 +101,12 @@ std::unique_ptr<ast::Term> Parser::parseTerm() {
 
     if (_symbolStack.top() != Symbol::term) {
         throw std::runtime_error("Symbol::term expected to parse");
-    } else if (CFG[_state.finalChart()[_elemIdx]->ruleIdx()].first != Symbol::term) {
+    } else if (CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].first != Symbol::term) {
         throw std::runtime_error("Expected lhs Symbol::term not found");
     }
 
     ast::Term* term = nullptr;
-    const auto& rhs = CFG[_state.finalChart()[_elemIdx]->ruleIdx()].second;
+    const auto& rhs = CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].second;
     for (std::size_t i = 0; i < rhs.size(); ++i) {
         if (!isTerminal(rhs[i])) {
             _symbolStack.push(rhs[i]);
@@ -135,16 +135,16 @@ std::unique_ptr<ast::Factor> Parser::parseFactor() {
 
     if (_symbolStack.top() != Symbol::factor) {
         throw std::runtime_error("Symbol::factor expected to parse");
-    } else if (CFG[_state.finalChart()[_elemIdx]->ruleIdx()].first != Symbol::factor) {
+    } else if (CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].first != Symbol::factor) {
         throw std::runtime_error("Expected lhs Symbol::factor not found");
     }
 
     ast::Factor* factor = nullptr;
-    const auto& rhs = CFG[_state.finalChart()[_elemIdx]->ruleIdx()].second;
+    const auto& rhs = CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].second;
     if (rhs.size() > 1) {
         if (rhs[0] == Symbol::ID && rhs.size() == 3) {
             factor = new ast::Factor();
-            factor->setProcedureCall(_state.getToken(_state.finalChart()[_elemIdx]->startIdx()).value);
+            factor->setProcedureCall(State::instance().getToken(State::instance().finalChart()[_elemIdx]->startIdx()).value);
             --_elemIdx;
         } else {
             for (std::size_t i = 0; i < rhs.size(); ++i) {
@@ -165,16 +165,16 @@ std::unique_ptr<ast::Factor> Parser::parseFactor() {
                 factor->setNewIntExpr();
             } else if (rhs[0] == Symbol::ID) { // factor -> ID LPAREN arglist RPAREN
                 // FIXME: Really bad design here!
-                const auto& procName = _state.getToken(_state.finalChart()[_elemIdx]->startIdx()).value;
+                const auto& procName = State::instance().getToken(State::instance().finalChart()[_elemIdx]->startIdx()).value;
                 factor = new ast::Factor(std::move(parseArglist()));
                 factor->setProcedureCall(procName);
             }
         }
     } else {
         if (rhs[0] == Symbol::ID) {
-            factor = new ast::Factor(_state.getToken(_state.finalChart()[_elemIdx]->startIdx()).value);
+            factor = new ast::Factor(State::instance().getToken(State::instance().finalChart()[_elemIdx]->startIdx()).value);
         } else if (rhs[0] == Symbol::NUM) {
-            unsigned int num = std::stoi(_state.getToken(_state.finalChart()[_elemIdx]->startIdx()).value);
+            unsigned int num = std::stoi(State::instance().getToken(State::instance().finalChart()[_elemIdx]->startIdx()).value);
             factor = new ast::Factor(num);
         } else if (rhs[0] == Symbol::NULL_S) {
             factor = new ast::Factor(ast::NullType());
@@ -193,14 +193,14 @@ std::unique_ptr<ast::Lvalue> Parser::parseLvalue() {
 
     if (_symbolStack.top() != Symbol::lvalue) {
         throw std::runtime_error("Symbol::lvalue expected to parse");
-    } else if (CFG[_state.finalChart()[_elemIdx]->ruleIdx()].first != Symbol::lvalue) {
+    } else if (CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].first != Symbol::lvalue) {
         throw std::runtime_error("Expected lhs Symbol::lvalue not found");
     }
 
     ast::Lvalue* lvalue = nullptr;
-    const auto& rhs = CFG[_state.finalChart()[_elemIdx]->ruleIdx()].second;
+    const auto& rhs = CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].second;
     if (rhs[0] == Symbol::ID) {
-        lvalue = new ast::Lvalue(_state.getToken(_state.finalChart()[_elemIdx]->startIdx()).value);
+        lvalue = new ast::Lvalue(State::instance().getToken(State::instance().finalChart()[_elemIdx]->startIdx()).value);
     } else {
         _symbolStack.push(rhs[1]);
         if (rhs[0] == Symbol::STAR) {
@@ -222,12 +222,12 @@ std::unique_ptr<ast::Arglist> Parser::parseArglist() {
 
     if (_symbolStack.top() != Symbol::arglist) {
         throw std::runtime_error("Symbol::arglist expected to parse");
-    } else if (CFG[_state.finalChart()[_elemIdx]->ruleIdx()].first != Symbol::arglist) {
+    } else if (CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].first != Symbol::arglist) {
         throw std::runtime_error("Expected lhs Symbol::arglist not found");
     }
 
     ast::Arglist* arglist = nullptr;
-    const auto& rhs = CFG[_state.finalChart()[_elemIdx]->ruleIdx()].second;
+    const auto& rhs = CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].second;
     for (std::size_t i = 0; i < rhs.size(); ++i) {
         if (!isTerminal(rhs[i])) {
             _symbolStack.push(rhs[i]);
@@ -252,11 +252,11 @@ bool Parser::parseStatements() {
 
     if (_symbolStack.top() != Symbol::statements) {
         throw std::runtime_error("Symbol::statements expected to parse");
-    } else if (CFG[_state.finalChart()[_elemIdx]->ruleIdx()].first != Symbol::statements) {
+    } else if (CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].first != Symbol::statements) {
         throw std::runtime_error("Expected lhs Symbol::statements not found");
     }
 
-    const auto& rhs = CFG[_state.finalChart()[_elemIdx]->ruleIdx()].second;
+    const auto& rhs = CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].second;
     bool emptyStmt = true;
     if (!rhs.empty()) {
         emptyStmt = false;
@@ -279,12 +279,12 @@ std::unique_ptr<ast::Statement> Parser::parseStatement() {
 
     if (_symbolStack.top() != Symbol::statement) {
         throw std::runtime_error("Symbol::statement expected to parse");
-    } else if (CFG[_state.finalChart()[_elemIdx]->ruleIdx()].first != Symbol::statement) {
+    } else if (CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].first != Symbol::statement) {
         throw std::runtime_error("Expected lhs Symbol::statement not found");
     }
 
     ast::Statement* stmt = nullptr;
-    const auto& rhs = CFG[_state.finalChart()[_elemIdx]->ruleIdx()].second;
+    const auto& rhs = CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].second;
     for (std::size_t i = 0; i < rhs.size(); ++i) {
         if (!isTerminal(rhs[i])) {
             _symbolStack.push(rhs[i]);
@@ -334,12 +334,12 @@ std::unique_ptr<ast::Test> Parser::parseTest() {
 
     if (_symbolStack.top() != Symbol::test) {
         throw std::runtime_error("Symbol::test expected to parse");
-    } else if (CFG[_state.finalChart()[_elemIdx]->ruleIdx()].first != Symbol::test) {
+    } else if (CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].first != Symbol::test) {
         throw std::runtime_error("Expected lhs Symbol::test not found");
     }
 
     auto test = new ast::Test;
-    const auto& rhs = CFG[_state.finalChart()[_elemIdx]->ruleIdx()].second;
+    const auto& rhs = CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].second;
     for (std::size_t i = 0; i < rhs.size(); ++i) {
         if (!isTerminal(rhs[i])) {
             _symbolStack.push(rhs[i]);
@@ -362,11 +362,11 @@ bool Parser::parseDcls() {
 
     if (_symbolStack.top() != Symbol::dcls) {
         throw std::runtime_error("Symbol::dcls expected to parse");
-    } else if (CFG[_state.finalChart()[_elemIdx]->ruleIdx()].first != Symbol::dcls) {
+    } else if (CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].first != Symbol::dcls) {
         throw std::runtime_error("Expected lhs Symbol::dcls not found");
     }
 
-    const auto& rhs = CFG[_state.finalChart()[_elemIdx]->ruleIdx()].second;
+    const auto& rhs = CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].second;
     bool emptyDcls = true;
     if (!rhs.empty()) {
         emptyDcls = false;
@@ -389,13 +389,13 @@ std::unique_ptr<ast::Dcl> Parser::parseDcl() {
 
     if (_symbolStack.top() != Symbol::dcl) {
         throw std::runtime_error("Symbol::dcl expected to parse");
-    } else if (CFG[_state.finalChart()[_elemIdx]->ruleIdx()].first != Symbol::dcl) {
+    } else if (CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].first != Symbol::dcl) {
         throw std::runtime_error("Expected lhs Symbol::dcl not found");
     }
 
-    const auto& rhs = CFG[_state.finalChart()[_elemIdx]->ruleIdx()].second;
+    const auto& rhs = CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].second;
     auto dcl = new ast::Dcl;
-    dcl->setId(_state.getToken(_state.finalChart()[_elemIdx]->startIdx()).value);
+    dcl->setId(State::instance().getToken(State::instance().finalChart()[_elemIdx]->startIdx()).value);
 
     return std::unique_ptr<ast::Dcl>(dcl);
 }

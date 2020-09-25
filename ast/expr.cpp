@@ -23,4 +23,8 @@ void Expr::setMinusWith(std::unique_ptr<Expr> expr) {
     _op = Op::MINUS;
 }
 
+DclType Expr::type() const {
+
+}
+
 } // namespace wlp4::ast
