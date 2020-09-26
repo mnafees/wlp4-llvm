@@ -139,12 +139,13 @@ std::unique_ptr<ast::Factor> Parser::parseFactor() {
         throw std::runtime_error("Expected lhs Symbol::factor not found");
     }
 
-    ast::Factor* factor = nullptr;
+    std::unique_ptr<ast::Factor> factor(new ast::Factor(_currProcedureName));
     const auto& rhs = CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].second;
     if (rhs.size() > 1) {
         if (rhs[0] == Symbol::ID && rhs.size() == 3) {
-            factor = new ast::Factor();
-            factor->setProcedureCall(State::instance().getToken(State::instance().finalChart()[_elemIdx]->startIdx()).value);
+            // factor -> ID LPAREN RPAREN
+            factor->setProcedureCall(State::instance().getToken(
+                State::instance().finalChart()[_elemIdx]->startIdx()).value);
             --_elemIdx;
         } else {
             for (std::size_t i = 0; i < rhs.size(); ++i) {
@@ -154,7 +155,8 @@ std::unique_ptr<ast::Factor> Parser::parseFactor() {
             }
             --_elemIdx;
             if (rhs[0] == Symbol::LPAREN) {
-                factor = new ast::Factor(std::move(parseExpr()));
+                // factor -> LPAREN expr RPAREN
+                factor->setValue(std::move(parseExpr()));
                 factor->setParenExpr();
             } else if (rhs[0] == Symbol::AMP) {
                 factor = new ast::Factor(std::move(parseLvalue()));
@@ -183,7 +185,7 @@ std::unique_ptr<ast::Factor> Parser::parseFactor() {
     }
     _symbolStack.pop();
 
-    return std::unique_ptr<ast::Factor>(factor);
+    return std::move(factor);
 }
 
 std::unique_ptr<ast::Lvalue> Parser::parseLvalue() {

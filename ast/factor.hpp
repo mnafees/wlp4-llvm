@@ -24,15 +24,9 @@ using FactorType = std::variant<std::monostate,
 class Factor {
 public:
     explicit Factor(std::string procedureName);
-    Factor(std::string procedureName, std::string id);
-    Factor(std::string procedureName, unsigned int num);
-    Factor(std::string procedureName, NullType nullType);
-    Factor(std::string procedureName, std::unique_ptr<Expr> expr);
-    Factor(std::string procedureName, std::unique_ptr<Lvalue> lvalue);
-    Factor(std::string procedureName, std::unique_ptr<Factor> factor);
-    Factor(std::string procedureName, std::unique_ptr<Arglist> arglist);
     ~Factor();
 
+    void setValue(FactorType value);
     void setProcedureCall(std::string name);
     void setParenExpr();
 

@@ -9,16 +9,14 @@ namespace wlp4::ast {
 
 class Test {
 public:
-    void setType(Symbol type);
-    Symbol type() const;
+    void setOp(Symbol op);
     void setLeftExpr(std::unique_ptr<Expr> expr);
-    const std::unique_ptr<Expr>& leftExpr();
     void setRightExpr(std::unique_ptr<Expr> expr);
-    const std::unique_ptr<Expr>& rightExpr();
+
     llvm::Value* codegen();
 
 private:
-    Symbol _type;
+    Symbol _op;
     std::unique_ptr<Expr> _leftExpr;
     std::unique_ptr<Expr> _rightExpr;
 };

@@ -20,12 +20,4 @@ void Arglist::setExpr(std::unique_ptr<Expr> expr) {
     _expr = std::move(expr);
 }
 
-const auto& Arglist::expr() const {
-    return _expr;
-}
-
-const auto& Arglist::arglist() const {
-    return _arglist;
-}
-
 } // namespace wlp4::ast

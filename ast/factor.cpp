@@ -10,44 +10,15 @@
 namespace wlp4::ast {
 
 Factor::Factor(std::string procedureName) :
-    _procedureName(std::move(procedureName)) {}
-
-Factor::Factor(std::string procedureName, std::string id) :
     _procedureName(std::move(procedureName)),
-    _value(std::move(id)),
-    _parenExpr(false) {}
-
-Factor::Factor(std::string procedureName, unsigned int num) :
-    _procedureName(std::move(procedureName)),
-    _value(num),
-    _parenExpr(false) {}
-
-Factor::Factor(std::string procedureName, NullType nullType) :
-    _procedureName(std::move(procedureName)),
-    _value(nullType),
-    _parenExpr(false) {}
-
-Factor::Factor(std::string procedureName, std::unique_ptr<Expr> expr) :
-    _procedureName(std::move(procedureName)),
-    _value(std::move(expr)),
-    _parenExpr(false) {}
-
-Factor::Factor(std::string procedureName, std::unique_ptr<Lvalue> lvalue) :
-    _procedureName(std::move(procedureName)),
-    _value(std::move(lvalue)),
-    _parenExpr(false) {}
-
-Factor::Factor(std::string procedureName, std::unique_ptr<Factor> factor) :
-    _procedureName(std::move(procedureName)),
-    _value(std::move(factor)),
-    _parenExpr(false) {}
-
-Factor::Factor(std::string procedureName, std::unique_ptr<Arglist> arglist) :
-    _procedureName(std::move(procedureName)),
-    _value(std::move(arglist)),
-    _parenExpr(false) {}
+    _parenExpr(false),
+    _value(std::monostate()) {}
 
 Factor::~Factor() {}
+
+void Factor::setValue(FactorType value) {
+    _value = std::move(value);
+}
 
 void Factor::setProcedureCall(std::string name) {
     _callingProcedureName = std::move(name);
@@ -88,6 +59,12 @@ DclType Factor::type() const {
     } else if (std::holds_alternative<std::unique_ptr<Arglist>>(_value)) {
         // The type of a factor deriving ID LPAREN arglist RPAREN is int
         return DclType::INT;
+    } else if (!_callingProcedureName.empty()) {
+        // The type of a factor deriving ID LPAREN RPAREN is int. The procedure whose name is
+        // ID must have an empty signature
+        return DclType::INT;
+    } else if (_value.index() == 0) {
+        return DclType::INVALID;
     }
 
     // The type of a factor deriving ID LPAREN RPAREN is int. The procedure whose name is

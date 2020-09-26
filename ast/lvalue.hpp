@@ -25,6 +25,8 @@ public:
 
     DclType type() const;
 
+    llvm::Value* codegen();
+
 private:
     std::string _procedureName;
     LvalueType _value;

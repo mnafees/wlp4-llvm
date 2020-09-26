@@ -7,6 +7,8 @@
 #include "state.hpp"
 #include "tokeniser.hpp"
 
+static void initLLVMCodegen();
+
 int main(int argc, const char* argv[]) {
     try {
         if (argc == 1) {
@@ -21,6 +23,11 @@ int main(int argc, const char* argv[]) {
 
         wlp4::Parser parser;
         parser.parse();
+
+        initLLVMCodegen();
+        for (const auto& proc : wlp4::State::instance().procedures()) {
+            proc->codegen();
+        }
     } catch (std::exception& e) {
         std::cerr << "wlp4c: " << e.what() << std::endl
                   << "compilation terminated." << std::endl;

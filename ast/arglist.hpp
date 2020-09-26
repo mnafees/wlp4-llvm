@@ -16,10 +16,8 @@ public:
     ~Arglist();
 
     void setExpr(std::unique_ptr<Expr> expr);
-    const auto& expr() const;
-    const auto& arglist() const;
 
-    llvm::Value* codegen();
+    std::vector<llvm::Value*> codegen();
 
 private:
     std::unique_ptr<Expr> _expr;

@@ -3,7 +3,7 @@
 
 namespace wlp4::ast {
 
-enum class DclType { INT, INT_STAR };
+enum class DclType { INVALID, INT, INT_STAR };
 
 struct NullType {};
 

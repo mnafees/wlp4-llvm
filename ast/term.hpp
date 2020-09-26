@@ -5,7 +5,8 @@
 #include <memory>
 
 // WLP4-LLVM
-#include "factor.hpp"
+#include "astfwd.hpp"
+#include "type.hpp"
 
 namespace wlp4::ast {
 
@@ -18,6 +19,8 @@ public:
     void setStarWith(std::unique_ptr<Term> term);
     void setSlashWith(std::unique_ptr<Term> term);
     void setPctWith(std::unique_ptr<Term> term);
+
+    DclType type() const;
 
     llvm::Value* codegen();
 

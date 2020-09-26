@@ -30,6 +30,8 @@ DclType Lvalue::type() const {
         // The type of an lvalue deriving LPAREN lvalue RPAREN is the same as the type
         // of the derived lvalue
         return std::get<std::unique_ptr<Lvalue>>(_value)->type();
+    } else if (_value.index() == 0) {
+        return DclType::INVALID;
     }
 
     // The type of a factor or lvalue deriving STAR factor is int. The type of the derived

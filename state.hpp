@@ -41,6 +41,7 @@ public:
     void addToFinalChart(std::unique_ptr<Elem> elem);
     const std::vector<std::unique_ptr<Elem>>& finalChart() const;
 
+    const std::vector<std::unique_ptr<ast::Procedure>>& procedures() const;
     void addProcedure(std::unique_ptr<ast::Procedure> proc);
 
     void addDclToProc(const std::string& procedureName, const std::string& dclName, ast::DclType dclType);

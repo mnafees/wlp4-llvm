@@ -15,9 +15,6 @@ public:
     void parse();
 
 private:
-    std::size_t _elemIdx;
-    std::stack<Symbol> _symbolStack;
-
     std::unique_ptr<ast::Expr> parseExpr();
     std::unique_ptr<ast::Term> parseTerm();
     std::unique_ptr<ast::Factor> parseFactor();
@@ -28,6 +25,10 @@ private:
     std::unique_ptr<ast::Test> parseTest();
     bool parseDcls();
     std::unique_ptr<ast::Dcl> parseDcl();
+
+    std::size_t _elemIdx;
+    std::stack<Symbol> _symbolStack;
+    std::string _currProcedureName;
 };
 
 } // namespace wlp4

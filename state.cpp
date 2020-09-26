@@ -122,6 +122,10 @@ const std::vector<std::unique_ptr<Elem>>& State::finalChart() const {
     return _chart;
 }
 
+const std::vector<std::unique_ptr<ast::Procedure>>& State::procedures() const {
+    return _procedures;
+}
+
 void State::addProcedure(std::unique_ptr<ast::Procedure> proc) {
     _procedures.push_back(std::move(proc));
 }

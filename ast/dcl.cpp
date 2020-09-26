@@ -19,10 +19,6 @@ void Dcl::setId(std::string id) {
     _id = std::move(id);
 }
 
-const auto& Dcl::value() const {
-    return _value;
-}
-
 void Dcl::setValue(std::string value) {
     _value = std::move(value);
 }
