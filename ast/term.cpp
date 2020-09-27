@@ -11,6 +11,8 @@ Term::Term(std::unique_ptr<Factor> factor) :
     _op(Op::NONE),
     _leftTerm(nullptr) {}
 
+Term::~Term() {}
+
 void Term::setStarWith(std::unique_ptr<Term> term) {
     _leftTerm = std::move(term);
     _op = Op::STAR;

@@ -7,13 +7,13 @@
 #include "state.hpp"
 #include "tokeniser.hpp"
 
-static void initLLVMCodegen();
-
 int main(int argc, const char* argv[]) {
     try {
         if (argc == 1) {
             throw std::runtime_error("no input file");
         }
+
+        wlp4::State::instance().setFilename(argv[1]);
 
         wlp4::Tokeniser tokeniser;
         tokeniser.tokenise();
@@ -24,10 +24,11 @@ int main(int argc, const char* argv[]) {
         wlp4::Parser parser;
         parser.parse();
 
-        initLLVMCodegen();
+        wlp4::State::initLLVMCodegen();
         for (const auto& proc : wlp4::State::instance().procedures()) {
             proc->codegen();
         }
+        wlp4::State::dumpObjectFile();
     } catch (std::exception& e) {
         std::cerr << "wlp4c: " << e.what() << std::endl
                   << "compilation terminated." << std::endl;

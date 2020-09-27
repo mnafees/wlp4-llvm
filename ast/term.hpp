@@ -15,6 +15,7 @@ public:
     enum class Op : unsigned char { NONE, STAR, SLASH, PCT }; // FIXME: Reuse from Symbol?
 
     explicit Term(std::unique_ptr<Factor> factor);
+    ~Term();
 
     void setStarWith(std::unique_ptr<Term> term);
     void setSlashWith(std::unique_ptr<Term> term);

@@ -4,7 +4,68 @@
 // WLP4-LLVM
 #include "token.hpp"
 
+// LLVM
+// LLVM
+#include "llvm/IR/IRBuilder.h"
+#include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/Module.h"
+#include "llvm/IR/LegacyPassManager.h"
+#include "llvm/Support/Host.h"
+#include "llvm/Support/TargetSelect.h"
+#include "llvm/Support/TargetRegistry.h"
+#include "llvm/Target/TargetOptions.h"
+#include "llvm/Target/TargetMachine.h"
+#include "llvm/Support/CodeGen.h"
+#include "llvm/Support/raw_ostream.h"
+#include "llvm/Support/FileSystem.h"
+
 namespace wlp4 {
+
+void State::initLLVMCodegen() {
+    llvm::InitializeNativeTarget();
+
+    auto TargetTriple = llvm::sys::getDefaultTargetTriple();
+    TheModule = std::unique_ptr<llvm::Module>(new llvm::Module(State::instance().filename(), TheContext));
+    TheModule->setSourceFileName(State::instance().filename());
+    std::string Error;
+    auto Target = llvm::TargetRegistry::lookupTarget(TargetTriple, Error);
+    if (!Target) {
+        throw std::runtime_error(Error);
+    }
+    auto CPU = "generic";
+    auto Features = "";
+    llvm::TargetOptions opt;
+    auto RM = llvm::Optional<llvm::Reloc::Model>();
+    TargetMachine = std::unique_ptr<llvm::TargetMachine>(Target->createTargetMachine(TargetTriple, CPU, Features, opt, RM));
+    TheModule->setDataLayout(TargetMachine->createDataLayout());
+    TheModule->setTargetTriple(TargetTriple);
+
+    auto printPlaceholder = Builder.CreateGlobalString("%d\n", "print_ph"); // FIXME: should it be ptr?
+    printPlaceholder->setAlignment(1);
+    printPlaceholder->setConstant(true);
+    TheModule->getGlobalList().push_back(printPlaceholder);
+}
+
+void State::dumpObjectFile() {
+    auto Filename = State::instance().filename() + ".o";
+    std::error_code EC;
+    llvm::raw_fd_ostream dest(Filename, EC, llvm::sys::fs::OF_None);
+
+    if (EC) {
+        throw std::runtime_error("Could not open file: " + EC.message());
+    }
+    llvm::errs() << *TheModule;
+
+    llvm::legacy::PassManager pass;
+    auto FileType = llvm::CGFT_ObjectFile;
+
+    if (TargetMachine->addPassesToEmitFile(pass, dest, nullptr, FileType)) {
+        throw std::runtime_error("TargetMachine can't emit a file of this type");
+    }
+
+    pass.run(*TheModule);
+    dest.flush();
+}
 
 std::vector<std::pair<Symbol, std::vector<Symbol>>> CFG;
 #ifdef DEBUG

@@ -2,7 +2,10 @@ cmake_minimum_required(VERSION 3.12)
 
 project(wlp4-llvm)
 
-find_package(LLVM REQUIRED)
+find_package(LLVM REQUIRED CONFIG)
+
+message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
+message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -15,7 +18,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 
-llvm_map_components_to_libnames(llvm_libs support core)
+llvm_map_components_to_libnames(llvm_libs support core X86Info X86Codegen)
 
 set(WLP4C_SRCS
     wlp4c.cpp

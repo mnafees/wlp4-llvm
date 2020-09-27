@@ -1,3 +1,6 @@
+// STL
+#include <system_error>
+
 // WLP4-LLVM
 #include "ast/procedure.hpp"
 #include "ast/dcl.hpp"
@@ -8,6 +11,7 @@
 #include "ast/factor.hpp"
 #include "ast/lvalue.hpp"
 #include "ast/arglist.hpp"
+#include "state.hpp"
 
 // LLVM
 #include "llvm/IR/IRBuilder.h"
@@ -16,26 +20,13 @@
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Module.h"
 
-static llvm::Module *TheModule;
-static llvm::LLVMContext TheContext;
-static llvm::IRBuilder<> Builder(TheContext);
 static std::map<std::string, std::map<std::string, llvm::Value*>> dclSymbolTable;
 static std::map<std::string, llvm::Function*> functions;
 
 namespace wlp4::ast {
 
-static void initLLVMCodegen() {
-    TheModule = new llvm::Module("", TheContext); // FIXME: add proper module ID
-
-    auto printPlaceholder = Builder.CreateGlobalString("%d\n", "print_ph"); // FIXME: should it be ptr?
-    printPlaceholder->setAlignment(1);
-    printPlaceholder->setConstant(true);
-    TheModule->getGlobalList().push_back(printPlaceholder);
-}
-
 llvm::Value* Procedure::codegen() {
     dclSymbolTable[_name] = std::map<std::string, llvm::Value*>();
-
     std::vector<llvm::Type*> args;
     for (const auto& param : _params) {
         if (param->type() == DclType::INT) {
@@ -54,12 +45,20 @@ llvm::Value* Procedure::codegen() {
         auto dclCodegen = dcl->codegen();
         dclSymbolTable[_name][dcl->id()] = dclCodegen;
     }
+    for (const auto& dcl : _dcls) {
+        auto dclValue = dclSymbolTable[_name][dcl->id()];
+        if (dcl->type() == DclType::INT && !dcl->value().empty()) {
+            Builder.CreateStore(Builder.getInt32(std::stoi(dcl->value())), dclValue);
+        }
+    }
     for (const auto& stmt : _stmts) {
         Builder.SetInsertPoint(llvm::BasicBlock::Create(TheContext, "", func)); // FIXME: do we need this?
         stmt->codegen();
     }
     Builder.CreateRet(_retExpr->codegen());
     TheModule->getFunctionList().push_back(func);
+
+    return func;
 }
 
 llvm::Value* Dcl::codegen() {

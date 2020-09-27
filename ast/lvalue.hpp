@@ -18,10 +18,10 @@ using LvalueType = std::variant<std::monostate,
 
 class Lvalue {
 public:
-    Lvalue(std::string procedureName, std::string id);
-    Lvalue(std::string procedureName, std::unique_ptr<Factor> factor);
-    Lvalue(std::string procedureName, std::unique_ptr<Lvalue> lvalue);
+    explicit Lvalue(std::string procedureName);
     ~Lvalue();
+
+    void setValue(LvalueType value);
 
     DclType type() const;
 

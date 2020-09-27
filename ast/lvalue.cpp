@@ -7,19 +7,15 @@
 
 namespace wlp4::ast {
 
-Lvalue::Lvalue(std::string procedureName, std::string id) :
+Lvalue::Lvalue(std::string procedureName) :
     _procedureName(std::move(procedureName)),
-    _value(std::move(id)) {}
-
-Lvalue::Lvalue(std::string procedureName, std::unique_ptr<Factor> factor) :
-    _procedureName(std::move(procedureName)),
-    _value(std::move(factor)) {}
-
-Lvalue::Lvalue(std::string procedureName, std::unique_ptr<Lvalue> lvalue) :
-    _procedureName(std::move(procedureName)),
-    _value(std::move(lvalue)) {}
+    _value(std::monostate()) {}
 
 Lvalue::~Lvalue() {}
+
+void Lvalue::setValue(LvalueType value) {
+    _value = std::move(value);
+}
 
 DclType Lvalue::type() const {
     if (std::holds_alternative<std::string>(_value)) {

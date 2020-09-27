@@ -20,6 +20,7 @@ public:
     const std::string& id() const;
     void setId(std::string id);
 
+    const std::string& value() const;
     void setValue(std::string value);
 
     llvm::Value* codegen();

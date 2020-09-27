@@ -53,6 +53,13 @@ void Parser::parse() {
                     State::instance().addDclToProc(proc->name(), dcl->id(), dcl->type());
                     proc->addDeclaration(std::move(dcl));
                 }
+            } else if (sym == Symbol::dcl) {
+                auto dcl2 = parseDcl();
+                auto dcl1 = parseDcl();
+                proc->addParam(std::move(dcl1));
+                proc->addParam(std::move(dcl2));
+            } else if (sym == Symbol::params) {
+
             }
         }
         if (_symbolStack.empty()) {
@@ -159,27 +166,26 @@ std::unique_ptr<ast::Factor> Parser::parseFactor() {
                 factor->setValue(std::move(parseExpr()));
                 factor->setParenExpr();
             } else if (rhs[0] == Symbol::AMP) {
-                factor = new ast::Factor(std::move(parseLvalue()));
+                factor->setValue(std::move(parseLvalue()));
             } else if (rhs[0] == Symbol::STAR) {
-                factor = new ast::Factor(std::move(parseFactor()));
+                factor->setValue(std::move(parseFactor()));
             } else if (rhs[0] == Symbol::NEW) {
-                factor = new ast::Factor(std::move(parseExpr()));
-                factor->setNewIntExpr();
+                factor->setValue(std::move(parseExpr()));
             } else if (rhs[0] == Symbol::ID) { // factor -> ID LPAREN arglist RPAREN
                 // FIXME: Really bad design here!
                 const auto& procName = State::instance().getToken(State::instance().finalChart()[_elemIdx]->startIdx()).value;
-                factor = new ast::Factor(std::move(parseArglist()));
+                factor->setValue(std::move(parseArglist()));
                 factor->setProcedureCall(procName);
             }
         }
     } else {
         if (rhs[0] == Symbol::ID) {
-            factor = new ast::Factor(State::instance().getToken(State::instance().finalChart()[_elemIdx]->startIdx()).value);
+            factor->setValue(State::instance().getToken(State::instance().finalChart()[_elemIdx]->startIdx()).value);
         } else if (rhs[0] == Symbol::NUM) {
             unsigned int num = std::stoi(State::instance().getToken(State::instance().finalChart()[_elemIdx]->startIdx()).value);
-            factor = new ast::Factor(num);
+            factor->setValue(num);
         } else if (rhs[0] == Symbol::NULL_S) {
-            factor = new ast::Factor(ast::NullType());
+            factor->setValue(ast::NullType());
         }
         --_elemIdx;
     }
@@ -199,22 +205,22 @@ std::unique_ptr<ast::Lvalue> Parser::parseLvalue() {
         throw std::runtime_error("Expected lhs Symbol::lvalue not found");
     }
 
-    ast::Lvalue* lvalue = nullptr;
+    std::unique_ptr<ast::Lvalue> lvalue(new ast::Lvalue(_currProcedureName));
     const auto& rhs = CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].second;
     if (rhs[0] == Symbol::ID) {
-        lvalue = new ast::Lvalue(State::instance().getToken(State::instance().finalChart()[_elemIdx]->startIdx()).value);
+        lvalue->setValue(State::instance().getToken(State::instance().finalChart()[_elemIdx]->startIdx()).value);
     } else {
         _symbolStack.push(rhs[1]);
         if (rhs[0] == Symbol::STAR) {
-            lvalue = new ast::Lvalue(std::move(parseFactor()));
+            lvalue->setValue(std::move(parseFactor()));
         } else if (rhs[0] == Symbol::LPAREN) {
-            lvalue = new ast::Lvalue(std::move(parseLvalue()));
+            lvalue->setValue(std::move(parseLvalue()));
         }
     }
     --_elemIdx;
     _symbolStack.pop();
 
-    return std::unique_ptr<ast::Lvalue>(lvalue);
+    return std::move(lvalue);
 }
 
 std::unique_ptr<ast::Arglist> Parser::parseArglist() {
@@ -258,6 +264,7 @@ bool Parser::parseStatements() {
         throw std::runtime_error("Expected lhs Symbol::statements not found");
     }
 
+    _symbolStack.pop();
     const auto& rhs = CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].second;
     bool emptyStmt = true;
     if (!rhs.empty()) {
@@ -268,8 +275,6 @@ bool Parser::parseStatements() {
             }
         }
     }
-    --_elemIdx;
-    _symbolStack.pop();
 
     return emptyStmt;
 }
@@ -349,7 +354,7 @@ std::unique_ptr<ast::Test> Parser::parseTest() {
     }
     test->setRightExpr(std::move(parseExpr()));
     test->setLeftExpr(std::move(parseExpr()));
-    test->setType(rhs[1]);
+    test->setOp(rhs[1]);
 
     --_elemIdx;
     _symbolStack.pop();
