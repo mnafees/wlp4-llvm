@@ -3,6 +3,7 @@
 
 // STL
 #include <memory>
+#include <vector>
 
 // WLP4-LLVM
 #include "astfwd.hpp"

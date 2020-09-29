@@ -1,5 +1,5 @@
 // STL
-#include <system_error>
+#include <iostream>
 
 // WLP4-LLVM
 #include "ast/procedure.hpp"
@@ -14,33 +14,51 @@
 #include "state.hpp"
 
 // LLVM
-#include "llvm/IR/IRBuilder.h"
-#include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DerivedTypes.h"
-#include "llvm/IR/Module.h"
 
 static std::map<std::string, std::map<std::string, llvm::Value*>> dclSymbolTable;
 static std::map<std::string, llvm::Function*> functions;
 
 namespace wlp4::ast {
 
+auto& Builder = State::instance().Builder;
+auto& TheModule = State::instance().TheModule;
+
 llvm::Value* Procedure::codegen() {
+#ifdef DEBUG
+    std::cout << "Codegen for procedure " << _name << '\n';
+#endif
+
     dclSymbolTable[_name] = std::map<std::string, llvm::Value*>();
     std::vector<llvm::Type*> args;
     for (const auto& param : _params) {
         if (param->type() == DclType::INT) {
-            args.push_back(Builder.getInt32Ty());
+#ifdef DEBUG
+            std::cout << _name << " has a parameter of type INT" << '\n';
+#endif
+            args.push_back(Builder->getInt32Ty());
         } else if (param->type() == DclType::INT_STAR) {
-            args.push_back(llvm::PointerType::getInt32PtrTy(TheContext));
+#ifdef DEBUG
+            std::cout << _name << " has a parameter of type INT STAR" << '\n';
+#endif
+            args.push_back(llvm::PointerType::getInt32PtrTy(Builder->getContext()));
         }
     }
-    auto func = llvm::Function::Create(llvm::FunctionType::get(Builder.getInt32Ty(), args, false),
-        llvm::Function::ExternalLinkage, _name, *TheModule
+    auto func = llvm::Function::Create(llvm::FunctionType::get(Builder->getInt32Ty(), args, false),
+        llvm::Function::ExternalLinkage, _name, TheModule.get()
     );
+    std::size_t idx = 0;
+    for (auto& arg : func->args()) {
+        arg.setName(_params[idx++]->id());
+    }
     functions[_name] = func;
-    auto entryBB = llvm::BasicBlock::Create(TheContext, "entry", func);
-    Builder.SetInsertPoint(entryBB);
+    auto entryBB = llvm::BasicBlock::Create(Builder->getContext(), "entry", func);
+    Builder->SetInsertPoint(entryBB);
+    for (const auto& param : _params) {
+        auto dclCodegen = param->codegen();
+        dclSymbolTable[_name][param->id()] = dclCodegen;
+    }
     for (const auto& dcl : _dcls) {
         auto dclCodegen = dcl->codegen();
         dclSymbolTable[_name][dcl->id()] = dclCodegen;
@@ -48,43 +66,48 @@ llvm::Value* Procedure::codegen() {
     for (const auto& dcl : _dcls) {
         auto dclValue = dclSymbolTable[_name][dcl->id()];
         if (dcl->type() == DclType::INT && !dcl->value().empty()) {
-            Builder.CreateStore(Builder.getInt32(std::stoi(dcl->value())), dclValue);
+            Builder->CreateStore(Builder->getInt32(std::stoi(dcl->value())), dclValue);
         }
     }
     for (const auto& stmt : _stmts) {
-        Builder.SetInsertPoint(llvm::BasicBlock::Create(TheContext, "", func)); // FIXME: do we need this?
+        Builder->SetInsertPoint(llvm::BasicBlock::Create(Builder->getContext(), "", func)); // FIXME: do we need this?
         stmt->codegen();
     }
-    Builder.CreateRet(_retExpr->codegen());
-    TheModule->getFunctionList().push_back(func);
+    Builder->CreateRet(_retExpr->codegen());
 
     return func;
 }
 
 llvm::Value* Dcl::codegen() {
+    llvm::AllocaInst* alloca = nullptr;
     if (_type == DclType::INT) {
-        return Builder.CreateAlloca(Builder.getInt32Ty(), nullptr, _id);
+        alloca = Builder->CreateAlloca(Builder->getInt32Ty(), nullptr, _id);
+    } else if (_type == DclType::INT_STAR) {
+        alloca = Builder->CreateAlloca(llvm::PointerType::getInt32PtrTy(Builder->getContext()), nullptr, _id);
     }
-    return Builder.CreateAlloca(llvm::PointerType::getInt32PtrTy(TheContext), nullptr, _id);
+    if (alloca) {
+        alloca->setAlignment(4);
+    }
+    return alloca;
 }
 
 llvm::Value* IfStatement::codegen() {
     auto testCodegen = _test->codegen();
-    auto prevBB = Builder.GetInsertBlock();
+    auto prevBB = Builder->GetInsertBlock();
     auto func = prevBB->getParent();
-    auto trueBB = llvm::BasicBlock::Create(TheContext, "", func);
-    Builder.SetInsertPoint(trueBB);
+    auto trueBB = llvm::BasicBlock::Create(Builder->getContext(), "", func);
+    Builder->SetInsertPoint(trueBB);
     for (const auto& stmt : _trueStatements) {
         stmt->codegen();
     }
-    auto falseBB = llvm::BasicBlock::Create(TheContext, "", func);
-    Builder.SetInsertPoint(falseBB);
+    auto falseBB = llvm::BasicBlock::Create(Builder->getContext(), "", func);
+    Builder->SetInsertPoint(falseBB);
     for (const auto& stmt : _falseStatements) {
         stmt->codegen();
     }
-    Builder.SetInsertPoint(prevBB);
+    Builder->SetInsertPoint(prevBB);
 
-    return Builder.CreateCondBr(testCodegen, trueBB, falseBB);
+    return Builder->CreateCondBr(testCodegen, trueBB, falseBB);
 }
 
 llvm::Value* Lvalue::codegen() {
@@ -102,7 +125,7 @@ llvm::Value* Lvalue::codegen() {
 }
 
 llvm::Value* LvalueStatement::codegen() {
-    return Builder.CreateStore(_expr->codegen(), _lvalue->codegen());
+    return Builder->CreateStore(_expr->codegen(), _lvalue->codegen());
 }
 
 llvm::Value* WhileStatement::codegen() {
@@ -110,9 +133,28 @@ llvm::Value* WhileStatement::codegen() {
 }
 
 llvm::Value* PrintlnStatement::codegen() {
-    return Builder.CreateCall(TheModule->getOrInsertFunction("printf",
-        llvm::FunctionType::get(Builder.getInt32Ty(), {Builder.getInt8PtrTy()}, true)),
-        {TheModule->getGlobalVariable("print_ph"), _expr->codegen()});
+    auto printPhType = llvm::ArrayType::get(Builder->getInt8Ty(), 4);
+    auto printPlaceholder = TheModule->getOrInsertGlobal("print_ph", printPhType,
+        [=]() -> llvm::GlobalVariable* {
+            auto ph = Builder->CreateGlobalString("%d\n", "print_ph");
+            ph->setConstant(true);
+            ph->setLinkage(llvm::GlobalVariable::PrivateLinkage);
+            return ph;
+        }
+    );
+
+    std::vector<llvm::Value*> args;
+    std::vector<llvm::Constant*> gepArgs;
+    if constexpr (sizeof(void*) == 8) {
+        gepArgs.push_back(Builder->getInt64(0));
+        gepArgs.push_back(Builder->getInt64(0));
+    } else if (sizeof(void*) == 4) {
+        gepArgs.push_back(Builder->getInt32(0));
+        gepArgs.push_back(Builder->getInt32(0));
+    }
+    args.push_back(llvm::ConstantExpr::getInBoundsGetElementPtr(nullptr, printPlaceholder, gepArgs));
+    args.push_back(_expr->codegen());
+    return Builder->CreateCall(TheModule->getFunction("printf"), args);
 }
 
 llvm::Value* DeleteStatement::codegen() {
@@ -121,56 +163,56 @@ llvm::Value* DeleteStatement::codegen() {
 
 llvm::Value* Test::codegen() {
     if (_op == Symbol::EQ) {
-        return Builder.CreateICmpEQ(_leftExpr->codegen(), _rightExpr->codegen());
+        return Builder->CreateICmpEQ(_leftExpr->codegen(), _rightExpr->codegen());
     } else if (_op == Symbol::NE) {
-        return Builder.CreateICmpNE(_leftExpr->codegen(), _rightExpr->codegen());
+        return Builder->CreateICmpNE(_leftExpr->codegen(), _rightExpr->codegen());
     } else if (_op == Symbol::LT) {
-        return Builder.CreateICmpSLT(_leftExpr->codegen(), _rightExpr->codegen());
+        return Builder->CreateICmpSLT(_leftExpr->codegen(), _rightExpr->codegen());
     } else if (_op == Symbol::LE) {
-        return Builder.CreateICmpSLE(_leftExpr->codegen(), _rightExpr->codegen());
+        return Builder->CreateICmpSLE(_leftExpr->codegen(), _rightExpr->codegen());
     } else if (_op == Symbol::GE) {
-        return Builder.CreateICmpSGE(_leftExpr->codegen(), _rightExpr->codegen());
+        return Builder->CreateICmpSGE(_leftExpr->codegen(), _rightExpr->codegen());
     }
-    return Builder.CreateICmpSGT(_leftExpr->codegen(), _rightExpr->codegen());
+    return Builder->CreateICmpSGT(_leftExpr->codegen(), _rightExpr->codegen());
 }
 
 llvm::Value* Factor::codegen() {
     if (std::holds_alternative<std::string>(_value)) {
         // factor -> ID
-        return Builder.CreateLoad(dclSymbolTable[_procedureName][std::get<std::string>(_value)]);
+        return Builder->CreateLoad(dclSymbolTable[_procedureName][std::get<std::string>(_value)]);
     } else if (std::holds_alternative<unsigned int>(_value)) {
         // factor -> NUM
-        return Builder.getInt32(std::get<unsigned int>(_value));
+        return Builder->getInt32(std::get<unsigned int>(_value));
     } else if (std::holds_alternative<NullType>(_value)) {
         // factor -> NULL
-        return llvm::ConstantPointerNull::get(llvm::PointerType::get(Builder.getVoidTy(), 0));
+        return llvm::ConstantPointerNull::get(llvm::PointerType::get(Builder->getVoidTy(), 0));
     } else if (std::holds_alternative<std::unique_ptr<Expr>>(_value)) {
         if (_parenExpr) {
             // factor -> LPAREN expr RPAREN
-            return Builder.CreateLoad(std::get<std::unique_ptr<Expr>>(_value)->codegen());
+            return Builder->CreateLoad(std::get<std::unique_ptr<Expr>>(_value)->codegen());
         } else {
             // factor -> NEW INT LBRACK expr RBRACK
             llvm::Type* argType;
             if constexpr (sizeof(void*) == 8) { // 64-bit system
-                argType = Builder.getInt64Ty();
+                argType = Builder->getInt64Ty();
             } else { // 32-bit system
-                argType = Builder.getInt32Ty();
+                argType = Builder->getInt32Ty();
             }
-            return Builder.CreateCall(TheModule->getOrInsertFunction("malloc", llvm::FunctionType::get(
-                Builder.getInt8PtrTy(), {argType}, false)));
+            return Builder->CreateCall(TheModule->getOrInsertFunction("malloc", llvm::FunctionType::get(
+                Builder->getInt8PtrTy(), {argType}, false)));
         }
     } else if (std::holds_alternative<std::unique_ptr<Lvalue>>(_value)) {
         // factor -> AMP lvalue
-        return Builder.CreateLoad(std::get<std::unique_ptr<Lvalue>>(_value)->codegen());
+        return Builder->CreateLoad(std::get<std::unique_ptr<Lvalue>>(_value)->codegen());
     } else if (std::holds_alternative<std::unique_ptr<Factor>>(_value)) {
         // factor -> STAR factor
-        return Builder.CreateLoad(std::get<std::unique_ptr<Factor>>(_value)->codegen());
+        return Builder->CreateLoad(std::get<std::unique_ptr<Factor>>(_value)->codegen());
     } else if (std::holds_alternative<std::unique_ptr<Arglist>>(_value)) {
         // factor -> ID LPAREN arglist RPAREN
-        return Builder.CreateCall(functions[_callingProcedureName], std::get<std::unique_ptr<Arglist>>(_value)->codegen());
+        return Builder->CreateCall(functions[_callingProcedureName], std::get<std::unique_ptr<Arglist>>(_value)->codegen());
     } else if (!_callingProcedureName.empty()) {
         // factor -> ID LPAREN RPAREN
-        return Builder.CreateCall(functions[_callingProcedureName]);
+        return Builder->CreateCall(functions[_callingProcedureName]);
     }
     return nullptr;
 }
@@ -184,13 +226,13 @@ llvm::Value* Term::codegen() {
     auto leftTermCodegen = _leftTerm->codegen();
     if (_op == Term::Op::STAR) {
         // term -> term STAR factor
-        return Builder.CreateMul(leftTermCodegen, factorCodegen);
+        return Builder->CreateMul(leftTermCodegen, factorCodegen);
     } else if (_op == Term::Op::SLASH) {
         // term -> term SLASH factor
-        return Builder.CreateSDiv(leftTermCodegen, factorCodegen);
+        return Builder->CreateSDiv(leftTermCodegen, factorCodegen);
     }
     // term -> term PCT factor
-    return Builder.CreateSRem(leftTermCodegen, factorCodegen);
+    return Builder->CreateSRem(leftTermCodegen, factorCodegen);
 }
 
 llvm::Value* Expr::codegen() {
@@ -202,10 +244,10 @@ llvm::Value* Expr::codegen() {
     auto leftExprCodegen = _leftExpr->codegen();
     if (_op == Expr::Op::MINUS) {
         // expr -> expr MINUS term
-        return Builder.CreateSub(leftExprCodegen, termCodegen);
+        return Builder->CreateSub(leftExprCodegen, termCodegen);
     }
     // expr -> expr PLUS term
-    return Builder.CreateAdd(leftExprCodegen, termCodegen);
+    return Builder->CreateAdd(leftExprCodegen, termCodegen);
 }
 
 std::vector<llvm::Value*> Arglist::codegen() {

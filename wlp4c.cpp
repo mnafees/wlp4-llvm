@@ -13,22 +13,22 @@ int main(int argc, const char* argv[]) {
             throw std::runtime_error("no input file");
         }
 
-        wlp4::State::instance().setFilename(argv[1]);
+        using namespace wlp4;
 
-        wlp4::Tokeniser tokeniser;
-        tokeniser.tokenise();
+        State::instance().setFilename(argv[1]);
+        // All of the below operations simply populate data in the State singeton object
+        Tokeniser().tokenise();
+        Recogniser().recognise();
+#ifdef DEBUG
+        State::instance().printFinalChart();
+#endif
+        Parser().parse();
 
-        wlp4::Recogniser recogniser;
-        recogniser.recognise();
-
-        wlp4::Parser parser;
-        parser.parse();
-
-        wlp4::State::initLLVMCodegen();
-        for (const auto& proc : wlp4::State::instance().procedures()) {
+        State::instance().initLLVMCodegen();
+        for (const auto& proc : State::instance().procedures()) {
             proc->codegen();
         }
-        wlp4::State::dumpObjectFile();
+        State::instance().dumpObjectFile();
     } catch (std::exception& e) {
         std::cerr << "wlp4c: " << e.what() << std::endl
                   << "compilation terminated." << std::endl;

@@ -1,10 +1,14 @@
 // Self
 #include "state.hpp"
 
+#ifdef DEBUG
+// STL
+#include <iostream>
+#endif
+
 // WLP4-LLVM
 #include "token.hpp"
 
-// LLVM
 // LLVM
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/LLVMContext.h"
@@ -22,10 +26,15 @@
 namespace wlp4 {
 
 void State::initLLVMCodegen() {
-    llvm::InitializeNativeTarget();
+    llvm::InitializeAllTargetInfos();
+    llvm::InitializeAllTargets();
+    llvm::InitializeAllTargetMCs();
+    llvm::InitializeAllAsmParsers();
+    llvm::InitializeAllAsmPrinters();
 
+    Builder = std::make_unique<llvm::IRBuilder<>>(TheContext);
     auto TargetTriple = llvm::sys::getDefaultTargetTriple();
-    TheModule = std::unique_ptr<llvm::Module>(new llvm::Module(State::instance().filename(), TheContext));
+    TheModule = std::make_unique<llvm::Module>(State::instance().filename(), TheContext);
     TheModule->setSourceFileName(State::instance().filename());
     std::string Error;
     auto Target = llvm::TargetRegistry::lookupTarget(TargetTriple, Error);
@@ -40,10 +49,9 @@ void State::initLLVMCodegen() {
     TheModule->setDataLayout(TargetMachine->createDataLayout());
     TheModule->setTargetTriple(TargetTriple);
 
-    auto printPlaceholder = Builder.CreateGlobalString("%d\n", "print_ph"); // FIXME: should it be ptr?
-    printPlaceholder->setAlignment(1);
-    printPlaceholder->setConstant(true);
-    TheModule->getGlobalList().push_back(printPlaceholder);
+    // printf
+    auto printfType = llvm::FunctionType::get(Builder->getInt32Ty(), {llvm::Type::getInt8PtrTy(TheContext)}, true);
+    llvm::Function::Create(printfType, llvm::Function::ExternalLinkage, "printf", TheModule.get());
 }
 
 void State::dumpObjectFile() {
@@ -57,7 +65,7 @@ void State::dumpObjectFile() {
     llvm::errs() << *TheModule;
 
     llvm::legacy::PassManager pass;
-    auto FileType = llvm::CGFT_ObjectFile;
+    auto FileType = llvm::TargetMachine::CGFT_ObjectFile;
 
     if (TargetMachine->addPassesToEmitFile(pass, dest, nullptr, FileType)) {
         throw std::runtime_error("TargetMachine can't emit a file of this type");
@@ -146,7 +154,7 @@ State::State()  {
         { Symbol::test, "test" }, { Symbol::statement, "statement" }, { Symbol::term, "term" }, { Symbol::factor, "factor" },
         { Symbol::start, "start" }, { Symbol::arglist, "arglist" }
     };
-    symToStr = symToStrCopy;
+    symToStr = std::move(symToStrCopy);
 #endif
 }
 
@@ -202,5 +210,26 @@ void State::addDclToProc(const std::string& procedureName, const std::string& dc
 ast::DclType State::typeForDcl(const std::string& procedureName, const std::string& dclName) {
     return _dclsMap[procedureName][dclName];
 }
+
+#ifdef DEBUG
+void State::printFinalChart() {
+    std::cout << "===================================" << '\n'
+              << "=========== FINAL CHART ===========" << '\n'
+              << "===================================" << '\n';
+    for (const auto& el : _chart) {
+        std::cout << "Elem {" << '\n'
+                << "  lhs: " << symToStr[CFG[el->ruleIdx()].first] << '\n'
+                << "  rhs: ";
+        for (auto sym : CFG[el->ruleIdx()].second) {
+            std::cout << symToStr[sym] << " ";
+        }
+        std::cout << '\n'
+                  << "  startIdx: " << el->startIdx() << '\n'
+                  << "  dot: " << el->dot() << '\n'
+                  << "  op: " << el->op << '\n'
+                  << "}" << '\n';
+    }
+}
+#endif
 
 } // namespace wlp4

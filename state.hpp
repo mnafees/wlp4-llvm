@@ -14,18 +14,12 @@
 #include "ast/procedure.hpp"
 
 // LLVM
-// LLVM
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 #include "llvm/Target/TargetMachine.h"
 
 namespace wlp4 {
-
-static std::unique_ptr<llvm::Module> TheModule;
-static llvm::LLVMContext TheContext;
-static llvm::IRBuilder<> Builder(TheContext);
-static std::unique_ptr<llvm::TargetMachine> TargetMachine;
 
 // Context-free grammar taken from https://www.student.cs.uwaterloo.ca/~cs241/wlp4/WLP4.html
 extern std::vector<std::pair<Symbol, std::vector<Symbol>>> CFG;
@@ -36,15 +30,15 @@ extern std::map<Symbol, std::string> symToStr;
 class State {
     State();
 public:
-    static void initLLVMCodegen();
-    static void dumpObjectFile();
-
     State(const State&) = delete;
     State(State&&) = delete;
     State& operator=(const State&) = delete;
     State& operator=(State&&) = delete;
 
     static State& instance();
+
+    void initLLVMCodegen();
+    void dumpObjectFile();
 
     void setFilename(const char* name);
     const std::string& filename() const;
@@ -61,6 +55,15 @@ public:
 
     void addDclToProc(const std::string& procedureName, const std::string& dclName, ast::DclType dclType);
     ast::DclType typeForDcl(const std::string& procedureName, const std::string& dclName);
+
+#ifdef DEBUG
+    void printFinalChart();
+#endif
+
+    llvm::LLVMContext TheContext;
+    std::unique_ptr<llvm::Module> TheModule;
+    std::unique_ptr<llvm::IRBuilder<>> Builder;
+    std::unique_ptr<llvm::TargetMachine> TargetMachine;
 
 private:
     std::string _filename;

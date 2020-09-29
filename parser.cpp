@@ -16,6 +16,7 @@
 #include "ast/statement.hpp"
 #include "ast/test.hpp"
 #include "ast/dcl.hpp"
+#include "ast/type.hpp"
 
 namespace wlp4 {
 
@@ -24,20 +25,17 @@ void Parser::parse() {
     std::cout << __FUNCTION__ << '\n';
 #endif
 
-    ast::Procedure* proc = nullptr;
+    std::unique_ptr<ast::Procedure> proc;
     _elemIdx = State::instance().finalChart().size() - 1;
     for (; _elemIdx >= 0;) {
-        const auto& elem = State::instance().finalChart()[_elemIdx];
-#ifdef DEBUG
-        std::cout << symToStr[CFG[elem->ruleIdx()].first] << std::endl;
-#endif
+        const auto& elem = State::instance().finalChart().at(_elemIdx);
         if (CFG[elem->ruleIdx()].first == Symbol::procedure || CFG[elem->ruleIdx()].first == Symbol::main_s) {
             for (auto sym : CFG[elem->ruleIdx()].second) {
                 if (!isTerminal(sym)) {
                     _symbolStack.push(sym);
                 }
             }
-            proc = new ast::Procedure(State::instance().getToken(elem->startIdx() + 1).value);
+            proc = std::make_unique<ast::Procedure>(std::move(State::instance().getToken(elem->startIdx() + 1).value));
             --_elemIdx;
         } else if (!_symbolStack.empty()) {
             auto sym = CFG[elem->ruleIdx()].first;
@@ -53,7 +51,7 @@ void Parser::parse() {
                     State::instance().addDclToProc(proc->name(), dcl->id(), dcl->type());
                     proc->addDeclaration(std::move(dcl));
                 }
-            } else if (sym == Symbol::dcl) {
+            } else if (sym == Symbol::dcl && proc->isWain()) {
                 auto dcl2 = parseDcl();
                 auto dcl1 = parseDcl();
                 proc->addParam(std::move(dcl1));
@@ -63,8 +61,7 @@ void Parser::parse() {
             }
         }
         if (_symbolStack.empty()) {
-            State::instance().addProcedure(std::unique_ptr<ast::Procedure>(proc));
-            proc = nullptr;
+            State::instance().addProcedure(std::move(proc));
         }
     }
 }
@@ -80,6 +77,7 @@ std::unique_ptr<ast::Expr> Parser::parseExpr() {
         throw std::runtime_error("Expected lhs Symbol::expr not found");
     }
 
+    _symbolStack.pop();
     ast::Expr* expr = nullptr;
     const auto& rhs = CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].second;
     for (std::size_t i = 0; i < rhs.size(); ++i) {
@@ -96,7 +94,6 @@ std::unique_ptr<ast::Expr> Parser::parseExpr() {
             expr->setMinusWith(std::move(parseExpr()));
         }
     }
-    _symbolStack.pop();
 
     return std::unique_ptr<ast::Expr>(expr);
 }
@@ -112,6 +109,7 @@ std::unique_ptr<ast::Term> Parser::parseTerm() {
         throw std::runtime_error("Expected lhs Symbol::term not found");
     }
 
+    _symbolStack.pop();
     ast::Term* term = nullptr;
     const auto& rhs = CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].second;
     for (std::size_t i = 0; i < rhs.size(); ++i) {
@@ -130,7 +128,6 @@ std::unique_ptr<ast::Term> Parser::parseTerm() {
             term->setPctWith(std::move(parseTerm()));
         }
     }
-    _symbolStack.pop();
 
     return std::unique_ptr<ast::Term>(term);
 }
@@ -146,6 +143,7 @@ std::unique_ptr<ast::Factor> Parser::parseFactor() {
         throw std::runtime_error("Expected lhs Symbol::factor not found");
     }
 
+    _symbolStack.pop();
     std::unique_ptr<ast::Factor> factor(new ast::Factor(_currProcedureName));
     const auto& rhs = CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].second;
     if (rhs.size() > 1) {
@@ -189,7 +187,6 @@ std::unique_ptr<ast::Factor> Parser::parseFactor() {
         }
         --_elemIdx;
     }
-    _symbolStack.pop();
 
     return std::move(factor);
 }
@@ -275,6 +272,7 @@ bool Parser::parseStatements() {
             }
         }
     }
+    --_elemIdx;
 
     return emptyStmt;
 }
@@ -290,6 +288,7 @@ std::unique_ptr<ast::Statement> Parser::parseStatement() {
         throw std::runtime_error("Expected lhs Symbol::statement not found");
     }
 
+    _symbolStack.pop();
     ast::Statement* stmt = nullptr;
     const auto& rhs = CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].second;
     for (std::size_t i = 0; i < rhs.size(); ++i) {
@@ -297,6 +296,7 @@ std::unique_ptr<ast::Statement> Parser::parseStatement() {
             _symbolStack.push(rhs[i]);
         }
     }
+    --_elemIdx;
     if (rhs[0] == Symbol::lvalue) {
         ast::LvalueStatement* lvalueStmt = new ast::LvalueStatement;
         lvalueStmt->setExpr(std::move(parseExpr()));
@@ -328,8 +328,6 @@ std::unique_ptr<ast::Statement> Parser::parseStatement() {
         delStmt->setExpr(std::move(parseExpr()));
         stmt = delStmt;
     }
-    --_elemIdx;
-    _symbolStack.pop();
 
     return std::unique_ptr<ast::Statement>(stmt);
 }
@@ -345,6 +343,7 @@ std::unique_ptr<ast::Test> Parser::parseTest() {
         throw std::runtime_error("Expected lhs Symbol::test not found");
     }
 
+    _symbolStack.pop();
     auto test = new ast::Test;
     const auto& rhs = CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].second;
     for (std::size_t i = 0; i < rhs.size(); ++i) {
@@ -352,12 +351,10 @@ std::unique_ptr<ast::Test> Parser::parseTest() {
             _symbolStack.push(rhs[i]);
         }
     }
+    --_elemIdx;
     test->setRightExpr(std::move(parseExpr()));
     test->setLeftExpr(std::move(parseExpr()));
     test->setOp(rhs[1]);
-
-    --_elemIdx;
-    _symbolStack.pop();
 
     return std::unique_ptr<ast::Test>(test);
 }
@@ -402,7 +399,16 @@ std::unique_ptr<ast::Dcl> Parser::parseDcl() {
 
     const auto& rhs = CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].second;
     auto dcl = new ast::Dcl;
-    dcl->setId(State::instance().getToken(State::instance().finalChart()[_elemIdx]->startIdx()).value);
+    dcl->setId(State::instance().getToken(State::instance().finalChart()[_elemIdx]->startIdx() + 1).value);
+
+    _symbolStack.pop();
+    --_elemIdx;
+    if (CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].second.size() == 1) {
+        dcl->setType(ast::DclType::INT);
+    } else {
+        dcl->setType(ast::DclType::INT_STAR);
+    }
+    --_elemIdx;
 
     return std::unique_ptr<ast::Dcl>(dcl);
 }

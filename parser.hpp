@@ -26,7 +26,7 @@ private:
     bool parseDcls();
     std::unique_ptr<ast::Dcl> parseDcl();
 
-    std::size_t _elemIdx;
+    long _elemIdx;
     std::stack<Symbol> _symbolStack;
     std::string _currProcedureName;
 };
