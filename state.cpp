@@ -55,20 +55,21 @@ void State::initLLVMCodegen() {
 }
 
 void State::dumpObjectFile() {
-    auto Filename = State::instance().filename() + ".o";
+    using namespace std::string_literals;
+
+    auto Filename = State::instance().filename() + ".o"s;
     std::error_code EC;
     llvm::raw_fd_ostream dest(Filename, EC, llvm::sys::fs::OF_None);
 
     if (EC) {
-        throw std::runtime_error("Could not open file: " + EC.message());
+        throw std::runtime_error("Could not open file: "s + EC.message());
     }
-    llvm::errs() << *TheModule;
 
     llvm::legacy::PassManager pass;
     auto FileType = llvm::TargetMachine::CGFT_ObjectFile;
 
     if (TargetMachine->addPassesToEmitFile(pass, dest, nullptr, FileType)) {
-        throw std::runtime_error("TargetMachine can't emit a file of this type");
+        throw std::runtime_error("TargetMachine can't emit a file of this type"s);
     }
 
     pass.run(*TheModule);
@@ -184,6 +185,20 @@ std::size_t State::numTokens() const {
 }
 
 void State::addToFinalChart(std::unique_ptr<Elem> elem) {
+    const auto& rule = CFG[elem->ruleIdx()];
+    if (rule.first == Symbol::type && rule.second.size() == 2) {
+        // elem has the rule: type -> INT STAR
+        // This means that we must have already added another elem with rule: type -> INT previously
+        // We should get rid of this for sanity in the next steps
+        _chart.pop_back();
+    } else if (rule.first == Symbol::factor && rule.second.size() == 4) {
+        // elem has the rule: type -> ID LPAREN arglist RPAREN
+        // This means that we must have already added another elem with
+        // rule: factor -> ID LPAREN arglist RPAREN previously
+        // We should get rid of this for sanity in the next steps
+        _chart.pop_back();
+    }
+
     _chart.push_back(std::move(elem));
 }
 
@@ -191,12 +206,12 @@ const std::vector<std::unique_ptr<Elem>>& State::finalChart() const {
     return _chart;
 }
 
-const std::vector<std::unique_ptr<ast::Procedure>>& State::procedures() const {
+const std::list<std::unique_ptr<ast::Procedure>>& State::procedures() const {
     return _procedures;
 }
 
 void State::addProcedure(std::unique_ptr<ast::Procedure> proc) {
-    _procedures.push_back(std::move(proc));
+    _procedures.push_front(std::move(proc));
 }
 
 void State::addDclToProc(const std::string& procedureName, const std::string& dclName, ast::DclType dclType) {

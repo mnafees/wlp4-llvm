@@ -10,15 +10,15 @@ namespace wlp4::ast {
 class Test {
 public:
     void setOp(Symbol op);
-    void setLeftExpr(std::unique_ptr<Expr> expr);
-    void setRightExpr(std::unique_ptr<Expr> expr);
+    void setLeftExpr(ExprPtr expr);
+    void setRightExpr(ExprPtr expr);
 
     llvm::Value* codegen();
 
 private:
     Symbol _op;
-    std::unique_ptr<Expr> _leftExpr;
-    std::unique_ptr<Expr> _rightExpr;
+    ExprPtr _leftExpr;
+    ExprPtr _rightExpr;
 };
 
 } // namespace wlp4::ast

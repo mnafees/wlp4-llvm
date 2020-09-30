@@ -14,21 +14,21 @@ class Expr {
 public:
     enum class Op : unsigned char { NONE, PLUS, MINUS }; // FIXME: Reuse from Symbol?
 
-    explicit Expr(std::unique_ptr<Term> term);
+    explicit Expr(TermPtr term);
     ~Expr();
 
-    void setPlusWith(std::unique_ptr<Expr> expr);
+    void setPlusWith(ExprPtr expr);
 
-    void setMinusWith(std::unique_ptr<Expr> expr);
+    void setMinusWith(ExprPtr expr);
 
     DclType type() const;
 
     llvm::Value* codegen();
 
 private:
-    std::unique_ptr<Term> _term;
+    TermPtr _term;
     Op _op;
-    std::unique_ptr<Expr> _leftExpr;
+    ExprPtr _leftExpr;
 };
 
 } // namespace wlp4::ast

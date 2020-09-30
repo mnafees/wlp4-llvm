@@ -12,7 +12,6 @@ namespace wlp4 {
 class Elem {
 public:
     Elem(std::size_t ruleIdx, std::size_t startIdx, std::size_t dot);
-    ~Elem() = default;
 
     std::size_t ruleIdx() const;
     std::size_t startIdx() const;

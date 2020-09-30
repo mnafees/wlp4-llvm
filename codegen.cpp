@@ -48,6 +48,7 @@ llvm::Value* Procedure::codegen() {
     auto func = llvm::Function::Create(llvm::FunctionType::get(Builder->getInt32Ty(), args, false),
         llvm::Function::ExternalLinkage, _name, TheModule.get()
     );
+    func->setDSOLocal(true);
     std::size_t idx = 0;
     for (auto& arg : func->args()) {
         arg.setName(_params[idx++]->id());
@@ -114,12 +115,12 @@ llvm::Value* Lvalue::codegen() {
     if (std::holds_alternative<std::string>(_value)) {
         // lvalue -> ID
         return dclSymbolTable[_procedureName][std::get<std::string>(_value)];
-    } else if (std::holds_alternative<std::unique_ptr<Factor>>(_value)) {
+    } else if (std::holds_alternative<FactorPtr>(_value)) {
         // lvalue -> STAR factor
-        return std::get<std::unique_ptr<Factor>>(_value)->codegen(); // FIXME: is this correct?
-    } else if (std::holds_alternative<std::unique_ptr<Lvalue>>(_value)) {
+        return std::get<FactorPtr>(_value)->codegen(); // FIXME: is this correct?
+    } else if (std::holds_alternative<LvaluePtr>(_value)) {
         // lvalue -> LPAREN lvalue RPAREN
-        return std::get<std::unique_ptr<Lvalue>>(_value)->codegen();
+        return std::get<LvaluePtr>(_value)->codegen();
     }
     return nullptr;
 }
@@ -186,10 +187,10 @@ llvm::Value* Factor::codegen() {
     } else if (std::holds_alternative<NullType>(_value)) {
         // factor -> NULL
         return llvm::ConstantPointerNull::get(llvm::PointerType::get(Builder->getVoidTy(), 0));
-    } else if (std::holds_alternative<std::unique_ptr<Expr>>(_value)) {
+    } else if (std::holds_alternative<ExprPtr>(_value)) {
         if (_parenExpr) {
             // factor -> LPAREN expr RPAREN
-            return Builder->CreateLoad(std::get<std::unique_ptr<Expr>>(_value)->codegen());
+            return Builder->CreateLoad(std::get<ExprPtr>(_value)->codegen());
         } else {
             // factor -> NEW INT LBRACK expr RBRACK
             llvm::Type* argType;
@@ -201,15 +202,15 @@ llvm::Value* Factor::codegen() {
             return Builder->CreateCall(TheModule->getOrInsertFunction("malloc", llvm::FunctionType::get(
                 Builder->getInt8PtrTy(), {argType}, false)));
         }
-    } else if (std::holds_alternative<std::unique_ptr<Lvalue>>(_value)) {
+    } else if (std::holds_alternative<LvaluePtr>(_value)) {
         // factor -> AMP lvalue
-        return Builder->CreateLoad(std::get<std::unique_ptr<Lvalue>>(_value)->codegen());
-    } else if (std::holds_alternative<std::unique_ptr<Factor>>(_value)) {
+        return Builder->CreateLoad(std::get<LvaluePtr>(_value)->codegen());
+    } else if (std::holds_alternative<FactorPtr>(_value)) {
         // factor -> STAR factor
-        return Builder->CreateLoad(std::get<std::unique_ptr<Factor>>(_value)->codegen());
-    } else if (std::holds_alternative<std::unique_ptr<Arglist>>(_value)) {
+        return Builder->CreateLoad(std::get<FactorPtr>(_value)->codegen());
+    } else if (std::holds_alternative<ArglistPtr>(_value)) {
         // factor -> ID LPAREN arglist RPAREN
-        return Builder->CreateCall(functions[_callingProcedureName], std::get<std::unique_ptr<Arglist>>(_value)->codegen());
+        return Builder->CreateCall(functions[_callingProcedureName], std::get<ArglistPtr>(_value)->codegen());
     } else if (!_callingProcedureName.empty()) {
         // factor -> ID LPAREN RPAREN
         return Builder->CreateCall(functions[_callingProcedureName]);

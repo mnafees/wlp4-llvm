@@ -14,13 +14,19 @@ namespace wlp4::ast {
 
 class Dcl {
 public:
+    // Returns the type of this Dcl
     DclType type() const;
+    // Sets the type of this Dcl
     void setType(DclType type);
 
+    // Returns a const-ref to the ID of this Dcl
     const std::string& id() const;
+    // Sets the ID of this Dcl
     void setId(std::string id);
 
+    // Returns a const-ref to the value of this Dcl
     const std::string& value() const;
+    // Sets the value of this Dcl
     void setValue(std::string value);
 
     llvm::Value* codegen();

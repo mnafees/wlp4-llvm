@@ -16,10 +16,10 @@ using FactorType = std::variant<std::monostate,
                                 std::string,
                                 unsigned int,
                                 NullType,
-                                std::unique_ptr<Expr>,
-                                std::unique_ptr<Lvalue>,
-                                std::unique_ptr<Factor>,
-                                std::unique_ptr<Arglist>>;
+                                ExprPtr,
+                                LvaluePtr,
+                                FactorPtr,
+                                ArglistPtr>;
 
 class Factor {
 public:

@@ -14,21 +14,21 @@ class Term {
 public:
     enum class Op : unsigned char { NONE, STAR, SLASH, PCT }; // FIXME: Reuse from Symbol?
 
-    explicit Term(std::unique_ptr<Factor> factor);
+    explicit Term(FactorPtr factor);
     ~Term();
 
-    void setStarWith(std::unique_ptr<Term> term);
-    void setSlashWith(std::unique_ptr<Term> term);
-    void setPctWith(std::unique_ptr<Term> term);
+    void setStarWith(TermPtr term);
+    void setSlashWith(TermPtr term);
+    void setPctWith(TermPtr term);
 
     DclType type() const;
 
     llvm::Value* codegen();
 
 private:
-    std::unique_ptr<Factor> _factor;
+    FactorPtr _factor;
     Op _op;
-    std::unique_ptr<Term> _leftTerm;
+    TermPtr _leftTerm;
 };
 
 } // namespace wlp4::ast

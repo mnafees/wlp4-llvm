@@ -22,10 +22,10 @@ DclType Lvalue::type() const {
         // When lvalue derives ID, the derived ID must have a type, and the type of the
         // lvalue is the same as the type of the ID
         return State::instance().typeForDcl(_procedureName, std::get<std::string>(_value));
-    } else if (std::holds_alternative<std::unique_ptr<Lvalue>>(_value)) {
+    } else if (std::holds_alternative<LvaluePtr>(_value)) {
         // The type of an lvalue deriving LPAREN lvalue RPAREN is the same as the type
         // of the derived lvalue
-        return std::get<std::unique_ptr<Lvalue>>(_value)->type();
+        return std::get<LvaluePtr>(_value)->type();
     } else if (_value.index() == 0) {
         return DclType::INVALID;
     }

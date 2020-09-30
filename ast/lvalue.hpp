@@ -13,8 +13,8 @@ namespace wlp4::ast {
 
 using LvalueType = std::variant<std::monostate,
                                 std::string,
-                                std::unique_ptr<Factor>,
-                                std::unique_ptr<Lvalue>>;
+                                FactorPtr,
+                                LvaluePtr>;
 
 class Lvalue {
 public:

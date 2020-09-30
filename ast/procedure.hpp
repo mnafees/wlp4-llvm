@@ -18,19 +18,20 @@ public:
     llvm::Value* codegen();
     bool isWain() const;
     const std::string& name() const;
-    void addParam(std::unique_ptr<Dcl> dcl);
-    void addDeclaration(std::unique_ptr<Dcl> dcl);
+    void addParam(DclPtr dcl);
+    void addDeclaration(DclPtr dcl);
     void addStatement(std::unique_ptr<Statement> stmt);
-    void setReturnExpr(std::unique_ptr<Expr> expr);
+    void setReturnExpr(ExprPtr expr);
+    const std::vector<DclPtr>& params() const;
 
 private:
     void validateName(const std::string& name);
 
     std::string _name;
-    std::vector<std::unique_ptr<Dcl>> _params;
-    std::vector<std::unique_ptr<Dcl>> _dcls;
+    std::vector<DclPtr> _params;
+    std::vector<DclPtr> _dcls;
     std::vector<std::unique_ptr<Statement>> _stmts;
-    std::unique_ptr<Expr> _retExpr;
+    ExprPtr _retExpr;
 };
 
 } // namespace wlp4::ast

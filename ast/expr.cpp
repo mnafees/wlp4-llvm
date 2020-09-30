@@ -6,19 +6,19 @@
 
 namespace wlp4::ast {
 
-Expr::Expr(std::unique_ptr<Term> term) :
+Expr::Expr(TermPtr term) :
     _term(std::move(term)),
     _op(Op::NONE),
     _leftExpr(nullptr) {}
 
 Expr::~Expr() {}
 
-void Expr::setPlusWith(std::unique_ptr<Expr> expr) {
+void Expr::setPlusWith(ExprPtr expr) {
     _leftExpr = std::move(expr);
     _op = Op::PLUS;
 }
 
-void Expr::setMinusWith(std::unique_ptr<Expr> expr) {
+void Expr::setMinusWith(ExprPtr expr) {
     _leftExpr = std::move(expr);
     _op = Op::MINUS;
 }

@@ -8,15 +8,15 @@
 
 namespace wlp4::ast {
 
-void DeleteStatement::setExpr(std::unique_ptr<Expr> expr) {
+void DeleteStatement::setExpr(ExprPtr expr) {
     _expr = std::move(expr);
 }
 
-void IfStatement::setTest(std::unique_ptr<Test> test) {
+void IfStatement::setTest(TestPtr test) {
     _test = std::move(test);
 }
 
-const std::unique_ptr<Test>& IfStatement::test() {
+const TestPtr& IfStatement::test() {
     return _test;
 }
 
@@ -30,19 +30,19 @@ void IfStatement::addFalseStatement(std::unique_ptr<Statement> stmt) {
 
 LvalueStatement::~LvalueStatement() {}
 
-void LvalueStatement::setLvalue(std::unique_ptr<Lvalue> lvalue) {
+void LvalueStatement::setLvalue(LvaluePtr lvalue) {
     _lvalue = std::move(lvalue);
 }
 
-void LvalueStatement::setExpr(std::unique_ptr<Expr> expr) {
+void LvalueStatement::setExpr(ExprPtr expr) {
     _expr = std::move(expr);
 }
 
-void PrintlnStatement::setExpr(std::unique_ptr<Expr> expr) {
+void PrintlnStatement::setExpr(ExprPtr expr) {
     _expr = std::move(expr);
 }
 
-void WhileStatement::setTest(std::unique_ptr<Test> test) {
+void WhileStatement::setTest(TestPtr test) {
     _test = std::move(test);
 }
 

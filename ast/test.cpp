@@ -10,11 +10,11 @@ void Test::setOp(Symbol op) {
     _op = op;
 }
 
-void Test::setLeftExpr(std::unique_ptr<Expr> expr) {
+void Test::setLeftExpr(ExprPtr expr) {
     _leftExpr = std::move(expr);
 }
 
-void Test::setRightExpr(std::unique_ptr<Expr> expr) {
+void Test::setRightExpr(ExprPtr expr) {
     _rightExpr = std::move(expr);
 }
 

@@ -6,24 +6,24 @@
 
 namespace wlp4::ast {
 
-Term::Term(std::unique_ptr<Factor> factor) :
+Term::Term(FactorPtr factor) :
     _factor(std::move(factor)),
     _op(Op::NONE),
     _leftTerm(nullptr) {}
 
 Term::~Term() {}
 
-void Term::setStarWith(std::unique_ptr<Term> term) {
+void Term::setStarWith(TermPtr term) {
     _leftTerm = std::move(term);
     _op = Op::STAR;
 }
 
-void Term::setSlashWith(std::unique_ptr<Term> term) {
+void Term::setSlashWith(TermPtr term) {
     _leftTerm = std::move(term);
     _op = Op::SLASH;
 }
 
-void Term::setPctWith(std::unique_ptr<Term> term) {
+void Term::setPctWith(TermPtr term) {
     _leftTerm = std::move(term);
     _op = Op::PCT;
 }

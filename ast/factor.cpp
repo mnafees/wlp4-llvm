@@ -39,24 +39,24 @@ DclType Factor::type() const {
         // When factor derives ID, the derived ID must have a type, and the type of the
         // factor is the same as the type of the ID
         return State::instance().typeForDcl(_procedureName, std::get<std::string>(_value));
-    } else if (std::holds_alternative<std::unique_ptr<Expr>>(_value)) {
+    } else if (std::holds_alternative<ExprPtr>(_value)) {
         if (_parenExpr) {
             // The type of a factor deriving LPAREN expr RPAREN is the same as the type of the expr
-            return std::get<std::unique_ptr<Expr>>(_value)->type();
+            return std::get<ExprPtr>(_value)->type();
         } else {
             // The type of a factor deriving NEW INT LBRACK expr RBRACK is int*. The type
             // of the derived expr must be int
             return DclType::INT_STAR;
         }
-    } else if (std::holds_alternative<std::unique_ptr<Lvalue>>(_value)) {
+    } else if (std::holds_alternative<LvaluePtr>(_value)) {
         // The type of a factor deriving AMP lvalue is int*. The type of the derived lvalue
         // (i.e. the one preceded by AMP) must be int
         return DclType::INT_STAR;
-    } else if (std::holds_alternative<std::unique_ptr<Factor>>(_value)) {
+    } else if (std::holds_alternative<FactorPtr>(_value)) {
         // The type of a factor or lvalue deriving STAR factor is int. The type of the derived
         // factor (i.e. the one preceded by STAR) must be int*
         return DclType::INT;
-    } else if (std::holds_alternative<std::unique_ptr<Arglist>>(_value)) {
+    } else if (std::holds_alternative<ArglistPtr>(_value)) {
         // The type of a factor deriving ID LPAREN arglist RPAREN is int
         return DclType::INT;
     } else if (!_callingProcedureName.empty()) {

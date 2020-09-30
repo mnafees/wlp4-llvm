@@ -6,17 +6,17 @@
 
 namespace wlp4::ast {
 
-Arglist::Arglist(std::unique_ptr<Expr> expr) :
+Arglist::Arglist(ExprPtr expr) :
     _expr(std::move(expr)),
     _arglist(nullptr) {}
 
-Arglist::Arglist(std::unique_ptr<Arglist> arglist) :
+Arglist::Arglist(ArglistPtr arglist) :
     _arglist(std::move(arglist)),
     _expr(nullptr) {}
 
 Arglist::~Arglist() {}
 
-void Arglist::setExpr(std::unique_ptr<Expr> expr) {
+void Arglist::setExpr(ExprPtr expr) {
     _expr = std::move(expr);
 }
 

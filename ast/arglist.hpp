@@ -2,7 +2,6 @@
 #define __WLP4_LLVM_AST_ARGLIST
 
 // STL
-#include <memory>
 #include <vector>
 
 // WLP4-LLVM
@@ -12,17 +11,17 @@ namespace wlp4::ast {
 
 class Arglist {
 public:
-    explicit Arglist(std::unique_ptr<Expr> expr);
-    explicit Arglist(std::unique_ptr<Arglist> arglist);
+    explicit Arglist(ExprPtr expr);
+    explicit Arglist(ArglistPtr arglist);
     ~Arglist();
 
-    void setExpr(std::unique_ptr<Expr> expr);
+    void setExpr(ExprPtr expr);
 
     std::vector<llvm::Value*> codegen();
 
 private:
-    std::unique_ptr<Expr> _expr;
-    std::unique_ptr<Arglist> _arglist;
+    ExprPtr _expr;
+    ArglistPtr _arglist;
 };
 
 } // namespace wlp4::ast

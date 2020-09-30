@@ -17,17 +17,17 @@ public:
 
 class DeleteStatement : public Statement {
 public:
-    void setExpr(std::unique_ptr<Expr> expr);
+    void setExpr(ExprPtr expr);
     llvm::Value* codegen() override;
 
 private:
-    std::unique_ptr<Expr> _expr;
+    ExprPtr _expr;
 };
 
 class IfStatement : public Statement {
 public:
-    void setTest(std::unique_ptr<Test> test);
-    const std::unique_ptr<Test>& test();
+    void setTest(TestPtr test);
+    const TestPtr& test();
     void addTrueStatement(std::unique_ptr<Statement> stmt);
     const std::vector<std::unique_ptr<Statement>>& trueStatements() { return _trueStatements; }
     void addFalseStatement(std::unique_ptr<Statement> stmt);
@@ -35,7 +35,7 @@ public:
     llvm::Value* codegen() override;
 
 private:
-    std::unique_ptr<Test> _test;
+    TestPtr _test;
     std::vector<std::unique_ptr<Statement>> _trueStatements;
     std::vector<std::unique_ptr<Statement>> _falseStatements;
 };
@@ -44,32 +44,32 @@ class LvalueStatement : public Statement {
 public:
     ~LvalueStatement();
 
-    void setLvalue(std::unique_ptr<Lvalue> lvalue);
-    void setExpr(std::unique_ptr<Expr> expr);
+    void setLvalue(LvaluePtr lvalue);
+    void setExpr(ExprPtr expr);
     llvm::Value* codegen() override;
 
 private:
-    std::unique_ptr<Lvalue> _lvalue;
-    std::unique_ptr<Expr> _expr;
+    LvaluePtr _lvalue;
+    ExprPtr _expr;
 };
 
 class PrintlnStatement : public Statement {
 public:
-    void setExpr(std::unique_ptr<Expr> expr);
+    void setExpr(ExprPtr expr);
     llvm::Value* codegen() override;
 
 private:
-    std::unique_ptr<Expr> _expr;
+    ExprPtr _expr;
 };
 
 class WhileStatement : public Statement {
 public:
-    void setTest(std::unique_ptr<Test> test);
+    void setTest(TestPtr test);
     void addStatement(std::unique_ptr<Statement> stmt);
     llvm::Value* codegen() override;
 
 private:
-    std::unique_ptr<Test> _test;
+    TestPtr _test;
     std::vector<std::unique_ptr<Statement>> _stmts;
 };
 

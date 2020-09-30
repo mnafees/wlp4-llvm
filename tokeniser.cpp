@@ -28,6 +28,8 @@ void Tokeniser::tokenise() {
                 if (ch == '\n') {
                     line++;
                     col = 1;
+                } else {
+                    col++;
                 }
                 ch = fs.get();
                 continue;
