@@ -195,11 +195,29 @@ void Recogniser::completer(std::size_t k) {
 }
 
 void Recogniser::populateFinalChart() {
+#ifdef DEBUG
+    std::cout << "===================================" << '\n'
+              << "=========== FINAL CHART ===========" << '\n'
+              << "===================================" << '\n';
+#endif
     // Iterate and keep only complete elems and elem lists
-    for (auto it = _chart.begin(); it != _chart.end(); ++it) {
-        for (auto elit = it->begin(); elit != it->end(); ++elit) {
-            if ((*elit)->isComplete()) {
-                State::instance().addToFinalChart(std::move(*elit));
+    for (auto& lst : _chart) {
+        for (auto& el : lst) {
+            if (el->isComplete()) {
+#ifdef DEBUG
+                std::cout << "Elem {" << '\n'
+                          << "  lhs: " << symToStr[CFG[el->ruleIdx()].first] << '\n'
+                          << "  rhs: ";
+                for (auto sym : CFG[el->ruleIdx()].second) {
+                    std::cout << symToStr[sym] << " ";
+                }
+                std::cout << '\n'
+                          << "  startIdx: " << el->startIdx() << '\n'
+                          << "  dot: " << el->dot() << '\n'
+                          << "  op: " << el->op << '\n'
+                          << "}" << '\n';
+#endif
+                State::instance().addToFinalChart(std::move(el));
             }
         }
     }

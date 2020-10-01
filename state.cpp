@@ -71,6 +71,7 @@ void State::dumpObjectFile() {
     if (TargetMachine->addPassesToEmitFile(pass, dest, nullptr, FileType)) {
         throw std::runtime_error("TargetMachine can't emit a file of this type"s);
     }
+    llvm::errs() << *TheModule;
 
     pass.run(*TheModule);
     dest.flush();
@@ -225,26 +226,5 @@ void State::addDclToProc(const std::string& procedureName, const std::string& dc
 ast::DclType State::typeForDcl(const std::string& procedureName, const std::string& dclName) {
     return _dclsMap[procedureName][dclName];
 }
-
-#ifdef DEBUG
-void State::printFinalChart() {
-    std::cout << "===================================" << '\n'
-              << "=========== FINAL CHART ===========" << '\n'
-              << "===================================" << '\n';
-    for (const auto& el : _chart) {
-        std::cout << "Elem {" << '\n'
-                << "  lhs: " << symToStr[CFG[el->ruleIdx()].first] << '\n'
-                << "  rhs: ";
-        for (auto sym : CFG[el->ruleIdx()].second) {
-            std::cout << symToStr[sym] << " ";
-        }
-        std::cout << '\n'
-                  << "  startIdx: " << el->startIdx() << '\n'
-                  << "  dot: " << el->dot() << '\n'
-                  << "  op: " << el->op << '\n'
-                  << "}" << '\n';
-    }
-}
-#endif
 
 } // namespace wlp4

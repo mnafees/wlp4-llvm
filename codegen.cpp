@@ -64,54 +64,91 @@ llvm::Value* Procedure::codegen() {
         auto dclCodegen = dcl->codegen();
         dclSymbolTable[_name][dcl->id()] = dclCodegen;
     }
+    for (auto& arg : func->args()) {
+        auto store = Builder->CreateStore(&arg, dclSymbolTable[_name][arg.getName()]);
+        store->setAlignment(4);
+    }
     for (const auto& dcl : _dcls) {
         auto dclValue = dclSymbolTable[_name][dcl->id()];
-        if (dcl->type() == DclType::INT && !dcl->value().empty()) {
-            Builder->CreateStore(Builder->getInt32(std::stoi(dcl->value())), dclValue);
+        llvm::StoreInst* store = nullptr;
+        if (dcl->type() == DclType::INT) {
+            store = Builder->CreateStore(Builder->getInt32(std::stoi(dcl->value())), dclValue);
+        } else if (dcl->type() == DclType::INT_STAR) {
+            store = Builder->CreateStore(llvm::ConstantPointerNull::get(
+                llvm::PointerType::get(Builder->getInt32Ty(), 0)), dclValue);
         }
+        store->setAlignment(4);
     }
     for (const auto& stmt : _stmts) {
-        Builder->SetInsertPoint(llvm::BasicBlock::Create(Builder->getContext(), "", func)); // FIXME: do we need this?
+        auto BB = llvm::BasicBlock::Create(Builder->getContext(), "", func);
+        Builder->CreateBr(BB);
+        Builder->SetInsertPoint(BB);
         stmt->codegen();
     }
+    auto BB = llvm::BasicBlock::Create(Builder->getContext(), "", func);
+    Builder->CreateBr(BB);
+    Builder->SetInsertPoint(BB);
     Builder->CreateRet(_retExpr->codegen());
 
     return func;
 }
 
 llvm::Value* Dcl::codegen() {
+#ifdef DEBUG
+    std::cout << __PRETTY_FUNCTION__ << '\n';
+#endif
+
     llvm::AllocaInst* alloca = nullptr;
     if (_type == DclType::INT) {
-        alloca = Builder->CreateAlloca(Builder->getInt32Ty(), nullptr, _id);
+        alloca = Builder->CreateAlloca(Builder->getInt32Ty());
     } else if (_type == DclType::INT_STAR) {
-        alloca = Builder->CreateAlloca(llvm::PointerType::getInt32PtrTy(Builder->getContext()), nullptr, _id);
+        alloca = Builder->CreateAlloca(llvm::PointerType::getInt32PtrTy(Builder->getContext()));
     }
-    if (alloca) {
-        alloca->setAlignment(4);
-    }
+    alloca->setAlignment(4);
     return alloca;
 }
 
 llvm::Value* IfStatement::codegen() {
+#ifdef DEBUG
+    std::cout << __PRETTY_FUNCTION__ << '\n';
+#endif
+
+    auto func = Builder->GetInsertBlock()->getParent();
+    auto BB = Builder->GetInsertBlock();
+
     auto testCodegen = _test->codegen();
-    auto prevBB = Builder->GetInsertBlock();
-    auto func = prevBB->getParent();
+
     auto trueBB = llvm::BasicBlock::Create(Builder->getContext(), "", func);
     Builder->SetInsertPoint(trueBB);
     for (const auto& stmt : _trueStatements) {
         stmt->codegen();
     }
+
     auto falseBB = llvm::BasicBlock::Create(Builder->getContext(), "", func);
     Builder->SetInsertPoint(falseBB);
     for (const auto& stmt : _falseStatements) {
         stmt->codegen();
     }
-    Builder->SetInsertPoint(prevBB);
 
-    return Builder->CreateCondBr(testCodegen, trueBB, falseBB);
+    Builder->SetInsertPoint(BB);
+    Builder->CreateCondBr(testCodegen, trueBB, falseBB);
+
+    auto exitBB = llvm::BasicBlock::Create(Builder->getContext(), "", func);
+    Builder->SetInsertPoint(trueBB);
+    Builder->CreateBr(exitBB);
+    Builder->SetInsertPoint(falseBB);
+    Builder->CreateBr(exitBB);
+
+    Builder->SetInsertPoint(exitBB);
+
+    return nullptr;
 }
 
 llvm::Value* Lvalue::codegen() {
+#ifdef DEBUG
+    std::cout << __PRETTY_FUNCTION__ << '\n';
+#endif
+
     if (std::holds_alternative<std::string>(_value)) {
         // lvalue -> ID
         return dclSymbolTable[_procedureName][std::get<std::string>(_value)];
@@ -126,14 +163,28 @@ llvm::Value* Lvalue::codegen() {
 }
 
 llvm::Value* LvalueStatement::codegen() {
-    return Builder->CreateStore(_expr->codegen(), _lvalue->codegen());
+#ifdef DEBUG
+    std::cout << __PRETTY_FUNCTION__ << '\n';
+#endif
+
+    auto store = Builder->CreateStore(_expr->codegen(), _lvalue->codegen());
+    store->setAlignment(4);
+    return store;
 }
 
 llvm::Value* WhileStatement::codegen() {
+#ifdef DEBUG
+    std::cout << __PRETTY_FUNCTION__ << '\n';
+#endif
+
     return nullptr;
 }
 
 llvm::Value* PrintlnStatement::codegen() {
+#ifdef DEBUG
+    std::cout << __PRETTY_FUNCTION__ << '\n';
+#endif
+
     auto printPhType = llvm::ArrayType::get(Builder->getInt8Ty(), 4);
     auto printPlaceholder = TheModule->getOrInsertGlobal("print_ph", printPhType,
         [=]() -> llvm::GlobalVariable* {
@@ -159,10 +210,18 @@ llvm::Value* PrintlnStatement::codegen() {
 }
 
 llvm::Value* DeleteStatement::codegen() {
+#ifdef DEBUG
+    std::cout << __PRETTY_FUNCTION__ << '\n';
+#endif
+
     return nullptr;
 }
 
 llvm::Value* Test::codegen() {
+#ifdef DEBUG
+    std::cout << __PRETTY_FUNCTION__ << '\n';
+#endif
+
     if (_op == Symbol::EQ) {
         return Builder->CreateICmpEQ(_leftExpr->codegen(), _rightExpr->codegen());
     } else if (_op == Symbol::NE) {
@@ -178,6 +237,10 @@ llvm::Value* Test::codegen() {
 }
 
 llvm::Value* Factor::codegen() {
+#ifdef DEBUG
+    std::cout << __PRETTY_FUNCTION__ << '\n';
+#endif
+
     if (std::holds_alternative<std::string>(_value)) {
         // factor -> ID
         return Builder->CreateLoad(dclSymbolTable[_procedureName][std::get<std::string>(_value)]);
@@ -186,7 +249,7 @@ llvm::Value* Factor::codegen() {
         return Builder->getInt32(std::get<unsigned int>(_value));
     } else if (std::holds_alternative<NullType>(_value)) {
         // factor -> NULL
-        return llvm::ConstantPointerNull::get(llvm::PointerType::get(Builder->getVoidTy(), 0));
+        return llvm::ConstantPointerNull::get(llvm::PointerType::get(Builder->getInt32Ty(), 0));
     } else if (std::holds_alternative<ExprPtr>(_value)) {
         if (_parenExpr) {
             // factor -> LPAREN expr RPAREN
@@ -219,6 +282,10 @@ llvm::Value* Factor::codegen() {
 }
 
 llvm::Value* Term::codegen() {
+#ifdef DEBUG
+    std::cout << __PRETTY_FUNCTION__ << '\n';
+#endif
+
     auto factorCodegen = _factor->codegen();
     if (_op == Term::Op::NONE) {
         // term -> factor
@@ -237,6 +304,10 @@ llvm::Value* Term::codegen() {
 }
 
 llvm::Value* Expr::codegen() {
+#ifdef DEBUG
+    std::cout << __PRETTY_FUNCTION__ << '\n';
+#endif
+
     auto termCodegen = _term->codegen();
     if (_op == Expr::Op::NONE) {
         // expr -> term
@@ -252,6 +323,10 @@ llvm::Value* Expr::codegen() {
 }
 
 std::vector<llvm::Value*> Arglist::codegen() {
+#ifdef DEBUG
+    std::cout << __PRETTY_FUNCTION__ << '\n';
+#endif
+
     std::vector<llvm::Value*> args;
     args.push_back(_expr->codegen()); // arglist -> expr
     if (_arglist) {

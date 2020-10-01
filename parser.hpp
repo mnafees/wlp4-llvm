@@ -2,7 +2,7 @@
 #define __WLP4_LLVM_PARSER
 
 // STL
-#include <stack>
+#include <optional>
 
 // WLP4-LLVM
 #include "ast/astfwd.hpp"
@@ -15,6 +15,7 @@ public:
     void parse();
 
 private:
+    void gotoCorrectRule(Symbol lhs, const std::string& name);
     std::unique_ptr<ast::Expr> parseExpr();
     std::unique_ptr<ast::Term> parseTerm();
     std::unique_ptr<ast::Factor> parseFactor();
@@ -23,11 +24,10 @@ private:
     bool parseStatements();
     std::unique_ptr<ast::Statement> parseStatement();
     std::unique_ptr<ast::Test> parseTest();
-    bool parseDcls();
+    std::pair<bool, std::optional<std::string>> parseDcls();
     std::unique_ptr<ast::Dcl> parseDcl();
 
     long _elemIdx;
-    std::stack<Symbol> _symbolStack;
     std::string _currProcedureName;
 };
 

@@ -32,8 +32,8 @@ void Procedure::addDeclaration(DclPtr dcl) {
     _dcls.push_back(std::move(dcl));
 }
 
-void Procedure::addStatement(std::unique_ptr<Statement> stmt) {
-    _stmts.push_back(std::move(stmt));
+void Procedure::addStatement(StatementPtr stmt) {
+    _stmts.push_front(std::move(stmt));
 }
 
 void Procedure::setReturnExpr(ExprPtr expr) {

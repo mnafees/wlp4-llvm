@@ -2,7 +2,7 @@
 #define __WLP4_LLVM_AST_PROCEDURE
 
 // STL
-#include <memory>
+#include <list>
 #include <vector>
 
 // WLP4-LLVM
@@ -20,7 +20,7 @@ public:
     const std::string& name() const;
     void addParam(DclPtr dcl);
     void addDeclaration(DclPtr dcl);
-    void addStatement(std::unique_ptr<Statement> stmt);
+    void addStatement(StatementPtr stmt);
     void setReturnExpr(ExprPtr expr);
     const std::vector<DclPtr>& params() const;
 
@@ -30,7 +30,7 @@ private:
     std::string _name;
     std::vector<DclPtr> _params;
     std::vector<DclPtr> _dcls;
-    std::vector<std::unique_ptr<Statement>> _stmts;
+    std::list<StatementPtr> _stmts;
     ExprPtr _retExpr;
 };
 

@@ -14,6 +14,8 @@ namespace wlp4::ast {
 
 class Dcl {
 public:
+
+
     // Returns the type of this Dcl
     DclType type() const;
     // Sets the type of this Dcl

@@ -56,10 +56,6 @@ public:
     void addDclToProc(const std::string& procedureName, const std::string& dclName, ast::DclType dclType);
     ast::DclType typeForDcl(const std::string& procedureName, const std::string& dclName);
 
-#ifdef DEBUG
-    void printFinalChart();
-#endif
-
     llvm::LLVMContext TheContext;
     std::unique_ptr<llvm::Module> TheModule;
     std::unique_ptr<llvm::IRBuilder<>> Builder;
