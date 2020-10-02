@@ -27,9 +27,42 @@ void Parser::parse() {
     std::cout << __PRETTY_FUNCTION__ << '\n';
 #endif
 
-    std::unique_ptr<ast::Procedure> proc(nullptr);
     _elemIdx = State::instance().finalChart().size() - 1;
     Symbol lhs;
+    // first we need to populate the symbol table for all procedures
+    for (; _elemIdx >= 0;) {
+        lhs = CFG[State::instance().finalChart().at(_elemIdx)->ruleIdx()].first;
+        if (lhs == Symbol::procedure || lhs == Symbol::main_s) {
+            const auto nameIdx = State::instance().finalChart().at(_elemIdx)->startIdx() + 1;
+            _currProcedureName = State::instance().getToken(nameIdx).value;
+            --_elemIdx;
+        } else if (lhs == Symbol::dcls) {
+            for (;;) {
+                if (auto [cond, opt] = parseDcls(); !cond) {
+                    auto dcl = parseDcl();
+                    if (opt.has_value()) {
+                        dcl->setValue(opt.value());
+                    }
+                    State::instance().addDclToProc(_currProcedureName, dcl->id(), dcl->type());
+                } else {
+                    break;
+                }
+            }
+        } else if (lhs == Symbol::dcl && _currProcedureName == "wain") {
+            auto dcl2 = parseDcl();
+            if (dcl2->type() != ast::DclType::INT) {
+                throw std::runtime_error("the second parameter for wain() needs to be an int");
+            }
+            auto dcl1 = parseDcl();
+            State::instance().addDclToProc(_currProcedureName, dcl1->id(), dcl1->type());
+            State::instance().addDclToProc(_currProcedureName, dcl2->id(), dcl2->type());
+        } else {
+            --_elemIdx;
+        }
+    }
+
+    std::unique_ptr<ast::Procedure> proc;
+    _elemIdx = State::instance().finalChart().size() - 1;
     for (;;) {
         lhs = CFG[State::instance().finalChart().at(_elemIdx)->ruleIdx()].first;
         if (lhs == Symbol::procedure || lhs == Symbol::main_s) {
@@ -38,11 +71,15 @@ void Parser::parse() {
                 proc = nullptr;
             }
             const auto nameIdx = State::instance().finalChart().at(_elemIdx)->startIdx() + 1;
-            proc = std::make_unique<ast::Procedure>(std::move(State::instance().getToken(nameIdx).value));
+            proc = std::make_unique<ast::Procedure>(State::instance().getToken(nameIdx).value);
             _currProcedureName = proc->name();
             --_elemIdx;
         } else if (lhs == Symbol::expr) {
-            proc->setReturnExpr(std::move(parseExpr()));
+            auto expr = parseExpr();
+            if (expr->type() != ast::DclType::INT) {
+                throw std::runtime_error("return value in procedure "s + proc->name() + " should be of type int");
+            }
+            proc->setReturnExpr(std::move(expr));
         } else if (lhs == Symbol::statements) {
             while (!parseStatements()) {
                 proc->addStatement(std::move(parseStatement()));
@@ -62,6 +99,9 @@ void Parser::parse() {
             }
         } else if (lhs == Symbol::dcl && proc->isWain()) {
             auto dcl2 = parseDcl();
+            if (dcl2->type() != ast::DclType::INT) {
+                throw std::runtime_error("the second parameter for wain() needs to be an int");
+            }
             auto dcl1 = parseDcl();
             proc->addParam(std::move(dcl1));
             proc->addParam(std::move(dcl2));
@@ -90,10 +130,9 @@ std::unique_ptr<ast::Expr> Parser::parseExpr() {
 #endif
 
     gotoCorrectRule(Symbol::expr, "Symbol::expr"s);
-    ast::Expr* expr = nullptr;
     const auto& rhs = CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].second;
     --_elemIdx;
-    expr = new ast::Expr(std::move(parseTerm()));
+    std::unique_ptr<ast::Expr> expr(new ast::Expr(std::move(parseTerm())));
     if (rhs.size() > 1) {
         if (rhs[1] == Symbol::PLUS) {
             expr->setPlusWith(std::move(parseExpr()));
@@ -101,8 +140,11 @@ std::unique_ptr<ast::Expr> Parser::parseExpr() {
             expr->setMinusWith(std::move(parseExpr()));
         }
     }
+    if (expr->type() == ast::DclType::INVALID) {
+        throw std::runtime_error("invalid expr generated");
+    }
 
-    return std::unique_ptr<ast::Expr>(expr);
+    return std::move(expr);
 }
 
 std::unique_ptr<ast::Term> Parser::parseTerm() {
@@ -111,21 +153,25 @@ std::unique_ptr<ast::Term> Parser::parseTerm() {
 #endif
 
     gotoCorrectRule(Symbol::term, "Symbol::term"s);
-    ast::Term* term = nullptr;
     const auto& rhs = CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].second;
     --_elemIdx;
-    term = new ast::Term(std::move(parseFactor()));
+    auto factor = parseFactor();
+    std::unique_ptr<ast::Term> term(new ast::Term(std::move(factor)));
     if (rhs.size() > 1) {
+        auto term = parseTerm();
+        if (factor->type() != ast::DclType::INT && term->type() != ast::DclType::INT) {
+            throw std::runtime_error("int values expected");
+        }
         if (rhs[1] == Symbol::STAR) {
-            term->setStarWith(std::move(parseTerm()));
+            term->setStarWith(std::move(term));
         } else if (rhs[1] == Symbol::SLASH) {
-            term->setSlashWith(std::move(parseTerm()));
+            term->setSlashWith(std::move(term));
         } else if (rhs[1] == Symbol::PCT) {
-            term->setPctWith(std::move(parseTerm()));
+            term->setPctWith(std::move(term));
         }
     }
 
-    return std::unique_ptr<ast::Term>(term);
+    return std::move(term);
 }
 
 std::unique_ptr<ast::Factor> Parser::parseFactor() {
@@ -157,11 +203,23 @@ std::unique_ptr<ast::Factor> Parser::parseFactor() {
                 factor->setValue(std::move(parseExpr()));
                 factor->setParenExpr();
             } else if (rhs[0] == Symbol::AMP) {
-                factor->setValue(std::move(parseLvalue()));
+                auto lvalue = parseLvalue();
+                if (lvalue->type() != ast::DclType::INT) {
+                    throw std::runtime_error("int value expected after &");
+                }
+                factor->setValue(std::move(lvalue));
             } else if (rhs[0] == Symbol::STAR) {
-                factor->setValue(std::move(parseFactor()));
+                auto factor = parseFactor();
+                if (factor->type() != ast::DclType::INT_STAR) {
+                    throw std::runtime_error("int* value expected after *");
+                }
+                factor->setValue(std::move(factor));
             } else if (rhs[0] == Symbol::NEW) {
-                factor->setValue(std::move(parseExpr()));
+                auto expr = parseExpr();
+                if (expr->type() != ast::DclType::INT) {
+                    throw std::runtime_error("int value expected after [");
+                }
+                factor->setValue(std::move(expr));
             }
         }
     } else {
@@ -193,7 +251,11 @@ std::unique_ptr<ast::Lvalue> Parser::parseLvalue() {
     } else {
         --_elemIdx;
         if (rhs[0] == Symbol::STAR) {
-            lvalue->setValue(std::move(parseFactor()));
+            auto factor = parseFactor();
+            if (factor->type() != ast::DclType::INT_STAR) {
+                throw std::runtime_error("int* value expected after *");
+            }
+            lvalue->setValue(std::move(factor));
         } else if (rhs[0] == Symbol::LPAREN) {
             lvalue->setValue(std::move(parseLvalue()));
         }
@@ -239,16 +301,21 @@ std::unique_ptr<ast::Statement> Parser::parseStatement() {
 #endif
 
     gotoCorrectRule(Symbol::statement, "Symbol::statement"s);
-    ast::Statement* stmt = nullptr;
+    std::unique_ptr<ast::Statement> stmt;
     const auto& rhs = CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].second;
     --_elemIdx;
     if (rhs[0] == Symbol::lvalue) {
-        ast::LvalueStatement* lvalueStmt = new ast::LvalueStatement;
-        lvalueStmt->setExpr(std::move(parseExpr()));
-        lvalueStmt->setLvalue(std::move(parseLvalue()));
-        stmt = lvalueStmt;
+        std::unique_ptr<ast::LvalueStatement> lvalueStmt(new ast::LvalueStatement);
+        auto expr = parseExpr();
+        auto lvalue = parseLvalue();
+        if (expr->type() != lvalue->type()) {
+            throw std::runtime_error("assigning value of invalid type");
+        }
+        lvalueStmt->setExpr(std::move(expr));
+        lvalueStmt->setLvalue(std::move(lvalue));
+        stmt = std::move(lvalueStmt);
     } else if (rhs[0] == Symbol::IF) {
-        auto ifStmt = new ast::IfStatement;
+        std::unique_ptr<ast::IfStatement> ifStmt(new ast::IfStatement);
         while (!parseStatements()) {
             ifStmt->addFalseStatement(std::move(parseStatement()));
         }
@@ -256,25 +323,33 @@ std::unique_ptr<ast::Statement> Parser::parseStatement() {
             ifStmt->addTrueStatement(std::move(parseStatement()));
         }
         ifStmt->setTest(std::move(parseTest()));
-        stmt = ifStmt;
+        stmt = std::move(ifStmt);
     } else if (rhs[0] == Symbol::WHILE) {
-        auto whileStmt = new ast::WhileStatement;
+        std::unique_ptr<ast::WhileStatement> whileStmt(new ast::WhileStatement);
         while (!parseStatements()) {
             whileStmt->addStatement(std::move(parseStatement()));
         }
         whileStmt->setTest(std::move(parseTest()));
-        stmt = whileStmt;
+        stmt = std::move(whileStmt);
     } else if (rhs[0] == Symbol::PRINTLN) {
-        ast::PrintlnStatement* printStmt = new ast::PrintlnStatement;
-        printStmt->setExpr(std::move(parseExpr()));
-        stmt = printStmt;
+        std::unique_ptr<ast::PrintlnStatement> printStmt(new ast::PrintlnStatement);
+        auto expr = parseExpr();
+        if (expr->type() != ast::DclType::INT) {
+            throw std::runtime_error("println can only accept int values");
+        }
+        printStmt->setExpr(std::move(expr));
+        stmt = std::move(printStmt);
     } else if (rhs[0] == Symbol::DELETE) {
-        ast::DeleteStatement* delStmt = new ast::DeleteStatement;
-        delStmt->setExpr(std::move(parseExpr()));
-        stmt = delStmt;
+        std::unique_ptr<ast::DeleteStatement> delStmt(new ast::DeleteStatement);
+        auto expr = parseExpr();
+        if (expr->type() != ast::DclType::INT_STAR) {
+            throw std::runtime_error("delete[] should be used only with int* values");
+        }
+        delStmt->setExpr(std::move(expr));
+        stmt = std::move(delStmt);
     }
 
-    return std::unique_ptr<ast::Statement>(stmt);
+    return std::move(stmt);
 }
 
 std::unique_ptr<ast::Test> Parser::parseTest() {
@@ -283,14 +358,19 @@ std::unique_ptr<ast::Test> Parser::parseTest() {
 #endif
 
     gotoCorrectRule(Symbol::test, "Symbol::test"s);
-    auto test = new ast::Test;
+    std::unique_ptr<ast::Test> test(new ast::Test);
     const auto& rhs = CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].second;
     --_elemIdx;
-    test->setRightExpr(std::move(parseExpr()));
-    test->setLeftExpr(std::move(parseExpr()));
+    auto rightExpr = parseExpr();
+    auto leftExpr = parseExpr();
+    if (rightExpr->type() != leftExpr->type()) {
+        throw std::runtime_error("invalid types being tested");
+    }
+    test->setRightExpr(std::move(rightExpr));
+    test->setLeftExpr(std::move(leftExpr));
     test->setOp(rhs[1]);
 
-    return std::unique_ptr<ast::Test>(test);
+    return std::move(test);
 }
 
 std::pair<bool, std::optional<std::string>> Parser::parseDcls() {
@@ -318,7 +398,7 @@ std::unique_ptr<ast::Dcl> Parser::parseDcl() {
 
     gotoCorrectRule(Symbol::dcl, "Symbol::dcl"s);
     const auto& rhs = CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].second;
-    auto dcl = new ast::Dcl;
+    std::unique_ptr<ast::Dcl> dcl(new ast::Dcl);
     --_elemIdx;
     if (CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].second.size() == 1) {
         dcl->setId(State::instance().getToken(State::instance().finalChart()[_elemIdx]->startIdx() + 1).value);
@@ -329,7 +409,7 @@ std::unique_ptr<ast::Dcl> Parser::parseDcl() {
     }
     --_elemIdx;
 
-    return std::unique_ptr<ast::Dcl>(dcl);
+    return std::move(dcl);
 }
 
 } // namespace wlp4

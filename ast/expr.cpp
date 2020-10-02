@@ -1,6 +1,11 @@
 // Self
 #include "expr.hpp"
 
+#ifdef DEBUG
+// STL
+#include <iostream>
+#endif
+
 // WLP4-LLVM
 #include "term.hpp"
 
@@ -24,6 +29,10 @@ void Expr::setMinusWith(ExprPtr expr) {
 }
 
 DclType Expr::type() const {
+#ifdef DEBUG
+    std::cout << __PRETTY_FUNCTION__ << '\n';
+#endif
+
     // When expr derives expr MINUS term
     if (_op == Op::MINUS) {
         if (_leftExpr->type() == DclType::INT && _term->type() == DclType::INT) {
@@ -38,8 +47,6 @@ DclType Expr::type() const {
             // The derived expr and the derived term may both have type int*, in which case
             // the type of the expr deriving them is int
             return DclType::INT;
-        } else {
-            return DclType::INVALID;
         }
     } else if (_op == Op::PLUS) {
         // When expr derives expr PLUS term
@@ -54,13 +61,12 @@ DclType Expr::type() const {
             // The derived expr may have type int and the derived term may have type int*, in
             // which case the type of the expr deriving them is int*
             return DclType::INT_STAR;
-        } else {
-            return DclType::INVALID;
         }
+    } else {
+        // The type of an expr deriving term is the same as the type of the derived term
+        return _term->type();
     }
-
-    // The type of an expr deriving term is the same as the type of the derived term
-    return _term->type();
+    return DclType::INVALID;
 }
 
 } // namespace wlp4::ast

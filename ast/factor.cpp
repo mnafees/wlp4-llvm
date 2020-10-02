@@ -63,13 +63,8 @@ DclType Factor::type() const {
         // The type of a factor deriving ID LPAREN RPAREN is int. The procedure whose name is
         // ID must have an empty signature
         return DclType::INT;
-    } else if (_value.index() == 0) {
-        return DclType::INVALID;
     }
-
-    // The type of a factor deriving ID LPAREN RPAREN is int. The procedure whose name is
-    // ID must have an empty signature
-    return DclType::INT;
+    return DclType::INVALID;
 }
 
 } // namespace wlp4::ast
