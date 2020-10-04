@@ -1,5 +1,5 @@
 // Self
-#include "dcl.hpp"
+#include "ast/dcl.hpp"
 
 namespace wlp4::ast {
 

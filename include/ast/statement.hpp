@@ -1,3 +1,4 @@
+#pragma once
 #ifndef __WLP4_LLVM_AST_STATEMENT
 #define __WLP4_LLVM_AST_STATEMENT
 

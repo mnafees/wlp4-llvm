@@ -1,8 +1,8 @@
 // Self
-#include "lvalue.hpp"
+#include "ast/lvalue.hpp"
 
 // WLP4-LLVM
-#include "factor.hpp"
+#include "ast/factor.hpp"
 #include "state.hpp"
 
 namespace wlp4::ast {

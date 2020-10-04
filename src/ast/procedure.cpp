@@ -1,10 +1,10 @@
 // Self
-#include "procedure.hpp"
+#include "ast/procedure.hpp"
 
 // WLP4-LLVM
-#include "dcl.hpp"
-#include "expr.hpp"
-#include "statement.hpp"
+#include "ast/dcl.hpp"
+#include "ast/expr.hpp"
+#include "ast/statement.hpp"
 
 namespace wlp4::ast {
 

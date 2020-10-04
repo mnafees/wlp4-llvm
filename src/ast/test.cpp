@@ -1,8 +1,8 @@
 // Self
-#include "test.hpp"
+#include "ast/test.hpp"
 
 // WLP4-LLVM
-#include "expr.hpp"
+#include "ast/expr.hpp"
 
 namespace wlp4::ast {
 

@@ -1,3 +1,4 @@
+#pragma once
 #ifndef __WLP4_LLVM_RECOGNISER
 #define __WLP4_LLVM_RECOGNISER
 
@@ -14,7 +15,7 @@ namespace wlp4 {
 
 using Chart = std::vector<std::vector<std::unique_ptr<Elem>>>;
 
-// An Earley Recogniser implementation
+// An Earley recogniser implementation
 class Recogniser {
 public:
     void recognise();

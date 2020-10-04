@@ -1,6 +1,8 @@
 // STL
-#include <cstdlib>
 #include <iostream>
+
+// LLVM
+#include "llvm/Support/CommandLine.h"
 
 // WLP4-LLVM
 #include "parser.hpp"
@@ -8,15 +10,21 @@
 #include "state.hpp"
 #include "tokeniser.hpp"
 
+using namespace llvm;
+
+cl::opt<std::string> OutputFilename("o", cl::desc("Specify output filename"), cl::value_desc("filename"));
+
 int main(int argc, const char* argv[]) {
+    cl::SetVersionPrinter([](raw_ostream& os) {
+        os << "wlp4c 1.0" << '\n'
+           << "Copyright (C) 2020 Mohammed Nafees" << '\n';
+    });
+    cl::ParseCommandLineOptions(argc, argv);
+
     try {
-        if (argc == 1) {
-            throw std::runtime_error("no input file");
-        }
-
         using namespace wlp4;
-
-        State::instance().setFilename(argv[1]);
+        auto& state = State::instance();
+        state.setFilename(argv[1]);
         // All of the below operations simply populate data in the State singeton object
 #ifdef DEBUG
         std::cout << "===================================" << '\n'
@@ -48,15 +56,15 @@ int main(int argc, const char* argv[]) {
                   << "===================================" << '\n';
 #endif
 
-        State::instance().initLLVMCodegen();
+        state.initLLVMCodegen();
         for (const auto& proc : State::instance().procedures()) {
             proc->codegen();
         }
-        State::instance().dumpObjectFile();
+        state.dumpObjectFile();
         // using namespace std::string_literals;
         // const auto compileCmd = "clang "s + State::instance().filename() + ".o -o "s + State::instance().filename() + ".exe"s;
         // std::system(compileCmd.c_str());
-    } catch (std::exception& e) {
+    } catch (const std::exception& e) {
         std::cerr << "wlp4c: " << e.what() << '\n'
                   << "compilation terminated." << '\n';
         return -1;

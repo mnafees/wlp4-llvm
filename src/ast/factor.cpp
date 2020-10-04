@@ -1,5 +1,5 @@
 // Self
-#include "factor.hpp"
+#include "ast/factor.hpp"
 
 #ifdef DEBUG
 // STL
@@ -7,9 +7,9 @@
 #endif
 
 // WLP4-LLVM
-#include "expr.hpp"
-#include "lvalue.hpp"
-#include "arglist.hpp"
+#include "ast/expr.hpp"
+#include "ast/lvalue.hpp"
+#include "ast/arglist.hpp"
 #include "state.hpp"
 
 namespace wlp4::ast {

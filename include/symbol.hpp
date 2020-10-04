@@ -1,3 +1,4 @@
+#pragma once
 #ifndef __WLP4_LLVM_SYMBOL
 #define __WLP4_LLVM_SYMBOL
 

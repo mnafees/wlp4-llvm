@@ -1,3 +1,4 @@
+#pragma once
 #ifndef __WLP4_LLVM_STATE
 #define __WLP4_LLVM_STATE
 

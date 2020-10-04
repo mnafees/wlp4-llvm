@@ -288,16 +288,7 @@ llvm::Value* Factor::codegen() {
         auto exprCodegen = std::get<ExprPtr>(_value)->codegen();
         if (_parenExpr) {
             // factor -> LPAREN expr RPAREN
-            auto loadInst = Builder->CreateLoad(exprCodegen);
-            const auto& expr = std::get<ExprPtr>(_value);
-            if (expr->type() == DclType::INT_STAR) {
-                if (expr->op() == Expr::Op::PLUS) {
-                    return Builder->CreateGEP(loadInst, expr->term()->codegen());
-                } else if (expr->op() == Expr::Op::MINUS) {
-
-                }
-            }
-            return loadInst;
+            return exprCodegen;
         }
         // factor -> NEW INT LBRACK expr RBRACK
         auto mulInst = Builder->CreateMul(exprCodegen, llvm::ConstantInt::get(Builder->getInt32Ty(), sizeof(int)));
@@ -348,13 +339,31 @@ llvm::Value* Expr::codegen() {
 #endif
 
     auto termCodegen = _term->codegen();
-    if (_op == Expr::Op::NONE || type() == DclType::INT_STAR) {
+    if (_op == Expr::Op::NONE) {
         // expr -> term
         return termCodegen;
     }
     auto leftExprCodegen = _leftExpr->codegen();
+    if (type() == DclType::INT_STAR) {
+        if (_op == Expr::Op::PLUS) {
+            // expr -> expr PLUS term
+            if (_leftExpr->type() == DclType::INT) {
+                return Builder->CreateInBoundsGEP(termCodegen, {leftExprCodegen});
+            }
+            return Builder->CreateInBoundsGEP(leftExprCodegen, {termCodegen});
+        } else {
+            // expr -> expr MINUS term
+            auto sub = Builder->CreateSub(Builder->getInt32(0), termCodegen);
+            return Builder->CreateInBoundsGEP(leftExprCodegen, {sub});
+        }
+    }
     if (_op == Expr::Op::MINUS) {
         // expr -> expr MINUS term
+        if (_term->type() == DclType::INT_STAR && _leftExpr->type() == DclType::INT_STAR) {
+            auto ptrToInt1 = Builder->CreatePtrToInt(termCodegen, Builder->getInt32Ty());
+            auto ptrToInt2 = Builder->CreatePtrToInt(leftExprCodegen, Builder->getInt32Ty());
+            return Builder->CreateExactSDiv(ptrToInt2, ptrToInt1);
+        }
         return Builder->CreateSub(leftExprCodegen, termCodegen);
     }
     // expr -> expr PLUS term

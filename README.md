@@ -1,6 +1,6 @@
 # WLP4-LLVM - LLVM frontend for WLP4
 
-WLP4 (pronounced "Wool P Four") stands for Waterloo Language Plus Pointers Plus Procedures. It is the language that is taught in the [introductory compiler course at the University of Waterloo](https://www.student.cs.uwaterloo.ca/~cs241).
+WLP4 (pronounced "Wool P Four") stands for Waterloo Language Plus Pointers Plus Procedures. It is the language that is taught in the ["Foundations of Sequential Programs" course](https://www.student.cs.uwaterloo.ca/~cs241) at the University of Waterloo.
 
 This project is based on the language specification available at https://www.student.cs.uwaterloo.ca/~cs241/wlp4/WLP4.html
 

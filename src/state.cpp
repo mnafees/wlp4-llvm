@@ -26,11 +26,8 @@
 namespace wlp4 {
 
 void State::initLLVMCodegen() {
-    llvm::InitializeAllTargetInfos();
-    llvm::InitializeAllTargets();
-    llvm::InitializeAllTargetMCs();
-    llvm::InitializeAllAsmParsers();
-    llvm::InitializeAllAsmPrinters();
+    llvm::InitializeNativeTarget();
+    llvm::InitializeNativeTargetAsmPrinter();
 
     Builder = std::make_unique<llvm::IRBuilder<>>(TheContext);
     auto TargetTriple = llvm::sys::getDefaultTargetTriple();

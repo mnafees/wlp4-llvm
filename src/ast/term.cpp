@@ -1,5 +1,5 @@
 // Self
-#include "term.hpp"
+#include "ast/term.hpp"
 
 #ifdef DEBUG
 // STL
@@ -7,7 +7,7 @@
 #endif
 
 // WLP4-LLVM
-#include "factor.hpp"
+#include "ast/factor.hpp"
 
 namespace wlp4::ast {
 
