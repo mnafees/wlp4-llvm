@@ -28,6 +28,18 @@ void Expr::setMinusWith(ExprPtr expr) {
     _op = Op::MINUS;
 }
 
+Expr::Op Expr::op() const {
+    return _op;
+}
+
+const TermPtr& Expr::term() const {
+    return _term;
+}
+
+const ExprPtr& Expr::expr() const {
+    return _leftExpr;
+}
+
 DclType Expr::type() const {
 #ifdef DEBUG
     std::cout << __PRETTY_FUNCTION__ << '\n';

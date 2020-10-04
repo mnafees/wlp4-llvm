@@ -20,12 +20,12 @@ const TestPtr& IfStatement::test() {
     return _test;
 }
 
-void IfStatement::addTrueStatement(std::unique_ptr<Statement> stmt) {
-    _trueStatements.push_back(std::move(stmt));
+void IfStatement::addTrueStatement(StatementPtr stmt) {
+    _trueStatements.push_front(std::move(stmt));
 }
 
-void IfStatement::addFalseStatement(std::unique_ptr<Statement> stmt) {
-    _falseStatements.push_back(std::move(stmt));
+void IfStatement::addFalseStatement(StatementPtr stmt) {
+    _falseStatements.push_front(std::move(stmt));
 }
 
 LvalueStatement::~LvalueStatement() {}
@@ -46,8 +46,8 @@ void WhileStatement::setTest(TestPtr test) {
     _test = std::move(test);
 }
 
-void WhileStatement::addStatement(std::unique_ptr<Statement> stmt) {
-    _stmts.push_back(std::move(stmt));
+void WhileStatement::addStatement(StatementPtr stmt) {
+    _stmts.push_front(std::move(stmt));
 }
 
 } // namespace wlp4::ast

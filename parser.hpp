@@ -24,8 +24,8 @@ private:
     bool parseStatements();
     std::unique_ptr<ast::Statement> parseStatement();
     std::unique_ptr<ast::Test> parseTest();
-    std::pair<bool, std::optional<std::string>> parseDcls();
-    std::unique_ptr<ast::Dcl> parseDcl();
+    std::optional<Symbol> parseDcls();
+    std::unique_ptr<ast::Dcl> parseDcl(Symbol *sym = nullptr);
 
     long _elemIdx;
     std::string _currProcedureName;

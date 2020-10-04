@@ -1,6 +1,11 @@
 // Self
 #include "factor.hpp"
 
+#ifdef DEBUG
+// STL
+#include <iostream>
+#endif
+
 // WLP4-LLVM
 #include "expr.hpp"
 #include "lvalue.hpp"
@@ -29,6 +34,10 @@ void Factor::setParenExpr() {
 }
 
 DclType Factor::type() const {
+#ifdef DEBUG
+    std::cout << __PRETTY_FUNCTION__ << '\n';
+#endif
+
     if (std::holds_alternative<unsigned int>(_value)) {
         // The type of a factor deriving NUM or NULL is the same as the type of that token
         return DclType::INT;

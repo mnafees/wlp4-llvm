@@ -41,6 +41,10 @@ DclType Term::type() const {
     if (_op == Op::NONE) {
         // The type of a term deriving factor is the same as the type of the derived factor
         return _factor->type();
+    } else if (_leftTerm->type() != DclType::INT || _factor->type() != DclType::INT) {
+        // The type of a term directly deriving anything other than just factor must have the
+        // derived term and factor to both be int
+        return DclType::INVALID;
     }
 
     // The type of a term directly deriving anything other than just factor is int

@@ -122,21 +122,30 @@ llvm::Value* IfStatement::codegen() {
     Builder->SetInsertPoint(trueBB);
     for (const auto& stmt : _trueStatements) {
         stmt->codegen();
+        auto BB = llvm::BasicBlock::Create(Builder->getContext(), "", func);
+        Builder->CreateBr(BB);
+        Builder->SetInsertPoint(BB);
     }
+    auto lastTrueBB = Builder->GetInsertBlock();
 
     auto falseBB = llvm::BasicBlock::Create(Builder->getContext(), "", func);
     Builder->SetInsertPoint(falseBB);
     for (const auto& stmt : _falseStatements) {
         stmt->codegen();
+        auto BB = llvm::BasicBlock::Create(Builder->getContext(), "", func);
+        Builder->CreateBr(BB);
+        Builder->SetInsertPoint(BB);
     }
+    auto lastFalseBB = Builder->GetInsertBlock();
+
 
     Builder->SetInsertPoint(BB);
     Builder->CreateCondBr(testCodegen, trueBB, falseBB);
 
     auto exitBB = llvm::BasicBlock::Create(Builder->getContext(), "", func);
-    Builder->SetInsertPoint(trueBB);
+    Builder->SetInsertPoint(lastTrueBB);
     Builder->CreateBr(exitBB);
-    Builder->SetInsertPoint(falseBB);
+    Builder->SetInsertPoint(lastFalseBB);
     Builder->CreateBr(exitBB);
 
     Builder->SetInsertPoint(exitBB);
@@ -177,6 +186,28 @@ llvm::Value* WhileStatement::codegen() {
     std::cout << __PRETTY_FUNCTION__ << '\n';
 #endif
 
+    auto func = Builder->GetInsertBlock()->getParent();
+    auto BB = Builder->GetInsertBlock();
+
+    auto testCodegen = _test->codegen();
+
+    auto whileBB = llvm::BasicBlock::Create(Builder->getContext(), "", func);
+    Builder->SetInsertPoint(whileBB);
+    for (const auto& stmt : _stmts) {
+        stmt->codegen();
+        auto BB = llvm::BasicBlock::Create(Builder->getContext(), "", func);
+        Builder->CreateBr(BB);
+        Builder->SetInsertPoint(BB);
+    }
+    Builder->CreateBr(BB);
+
+    auto exitBB = llvm::BasicBlock::Create(Builder->getContext(), "", func);
+
+    Builder->SetInsertPoint(BB);
+    Builder->CreateCondBr(testCodegen, whileBB, exitBB);
+
+    Builder->SetInsertPoint(exitBB);
+
     return nullptr;
 }
 
@@ -213,6 +244,9 @@ llvm::Value* DeleteStatement::codegen() {
 #ifdef DEBUG
     std::cout << __PRETTY_FUNCTION__ << '\n';
 #endif
+
+    auto bitcast = Builder->CreateBitCast(_expr->codegen(), Builder->getInt8PtrTy());
+    Builder->CreateCall(TheModule->getFunction("free"), {bitcast});
 
     return nullptr;
 }
@@ -251,20 +285,25 @@ llvm::Value* Factor::codegen() {
         // factor -> NULL
         return llvm::ConstantPointerNull::get(llvm::PointerType::get(Builder->getInt32Ty(), 0));
     } else if (std::holds_alternative<ExprPtr>(_value)) {
+        auto exprCodegen = std::get<ExprPtr>(_value)->codegen();
         if (_parenExpr) {
             // factor -> LPAREN expr RPAREN
-            return Builder->CreateLoad(std::get<ExprPtr>(_value)->codegen());
-        } else {
-            // factor -> NEW INT LBRACK expr RBRACK
-            llvm::Type* argType;
-            if constexpr (sizeof(void*) == 8) { // 64-bit system
-                argType = Builder->getInt64Ty();
-            } else { // 32-bit system
-                argType = Builder->getInt32Ty();
+            auto loadInst = Builder->CreateLoad(exprCodegen);
+            const auto& expr = std::get<ExprPtr>(_value);
+            if (expr->type() == DclType::INT_STAR) {
+                if (expr->op() == Expr::Op::PLUS) {
+                    return Builder->CreateGEP(loadInst, expr->term()->codegen());
+                } else if (expr->op() == Expr::Op::MINUS) {
+
+                }
             }
-            return Builder->CreateCall(TheModule->getOrInsertFunction("malloc", llvm::FunctionType::get(
-                Builder->getInt8PtrTy(), {argType}, false)));
+            return loadInst;
         }
+        // factor -> NEW INT LBRACK expr RBRACK
+        auto mulInst = Builder->CreateMul(exprCodegen, llvm::ConstantInt::get(Builder->getInt32Ty(), sizeof(int)));
+        auto mallocCall = Builder->CreateCall(TheModule->getFunction("malloc"), {mulInst});
+        mallocCall->addAttribute(0, llvm::Attribute::NoAlias);
+        return Builder->CreateBitCast(mallocCall, Builder->getInt32Ty()->getPointerTo());
     } else if (std::holds_alternative<LvaluePtr>(_value)) {
         // factor -> AMP lvalue
         return Builder->CreateLoad(std::get<LvaluePtr>(_value)->codegen());
@@ -309,7 +348,7 @@ llvm::Value* Expr::codegen() {
 #endif
 
     auto termCodegen = _term->codegen();
-    if (_op == Expr::Op::NONE) {
+    if (_op == Expr::Op::NONE || type() == DclType::INT_STAR) {
         // expr -> term
         return termCodegen;
     }

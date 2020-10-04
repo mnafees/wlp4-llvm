@@ -18,10 +18,11 @@ public:
     ~Expr();
 
     void setPlusWith(ExprPtr expr);
-
     void setMinusWith(ExprPtr expr);
-
+    Expr::Op op() const;
     DclType type() const;
+    const TermPtr& term() const;
+    const ExprPtr& expr() const;
 
     llvm::Value* codegen();
 

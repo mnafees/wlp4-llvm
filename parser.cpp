@@ -2,7 +2,9 @@
 #include "parser.hpp"
 
 // STL
+#ifdef DEBUG
 #include <iostream>
+#endif
 #include <map>
 
 // WLP4-LLVM
@@ -38,11 +40,15 @@ void Parser::parse() {
             --_elemIdx;
         } else if (lhs == Symbol::dcls) {
             for (;;) {
-                if (auto [cond, opt] = parseDcls(); !cond) {
+                if (auto opt = parseDcls(); opt.has_value()) {
                     auto dcl = parseDcl();
-                    if (opt.has_value()) {
-                        dcl->setValue(opt.value());
+#ifdef DEBUG
+                    if (dcl->type() == ast::DclType::INT) {
+                        std::cout << _currProcedureName << " has declaration '" << dcl->id() << "' of type INT\n";
+                    } else if (dcl->type() == ast::DclType::INT_STAR) {
+                        std::cout << _currProcedureName << " has declaration '" << dcl->id() << "' of type INT_STAR\n";
                     }
+#endif
                     State::instance().addDclToProc(_currProcedureName, dcl->id(), dcl->type());
                 } else {
                     break;
@@ -86,11 +92,11 @@ void Parser::parse() {
             }
         } else if (lhs == Symbol::dcls) {
             for (;;) {
-                if (auto [cond, opt] = parseDcls(); !cond) {
-                    auto dcl = parseDcl();
-                    if (opt.has_value()) {
-                        dcl->setValue(opt.value());
-                    }
+                if (auto opt = parseDcls(); opt.has_value()) {
+                    auto dcl = parseDcl(&opt.value());
+#ifdef DEBUG
+                    std::cout << "Value of dcl '" << dcl->id() << "' is '" << dcl->value() << "'\n";
+#endif
                     State::instance().addDclToProc(proc->name(), dcl->id(), dcl->type());
                     proc->addDeclaration(std::move(dcl));
                 } else {
@@ -158,16 +164,16 @@ std::unique_ptr<ast::Term> Parser::parseTerm() {
     auto factor = parseFactor();
     std::unique_ptr<ast::Term> term(new ast::Term(std::move(factor)));
     if (rhs.size() > 1) {
-        auto term = parseTerm();
-        if (factor->type() != ast::DclType::INT && term->type() != ast::DclType::INT) {
-            throw std::runtime_error("int values expected");
-        }
+        auto rightTerm = parseTerm();
         if (rhs[1] == Symbol::STAR) {
-            term->setStarWith(std::move(term));
+            term->setStarWith(std::move(rightTerm));
         } else if (rhs[1] == Symbol::SLASH) {
-            term->setSlashWith(std::move(term));
+            term->setSlashWith(std::move(rightTerm));
         } else if (rhs[1] == Symbol::PCT) {
-            term->setPctWith(std::move(term));
+            term->setPctWith(std::move(rightTerm));
+        }
+        if (term->type() == ast::DclType::INVALID) {
+            throw std::runtime_error("both int values expected");
         }
     }
 
@@ -209,11 +215,11 @@ std::unique_ptr<ast::Factor> Parser::parseFactor() {
                 }
                 factor->setValue(std::move(lvalue));
             } else if (rhs[0] == Symbol::STAR) {
-                auto factor = parseFactor();
-                if (factor->type() != ast::DclType::INT_STAR) {
+                auto rightFactor = parseFactor();
+                if (rightFactor->type() != ast::DclType::INT_STAR) {
                     throw std::runtime_error("int* value expected after *");
                 }
-                factor->setValue(std::move(factor));
+                factor->setValue(std::move(rightFactor));
             } else if (rhs[0] == Symbol::NEW) {
                 auto expr = parseExpr();
                 if (expr->type() != ast::DclType::INT) {
@@ -373,25 +379,22 @@ std::unique_ptr<ast::Test> Parser::parseTest() {
     return std::move(test);
 }
 
-std::pair<bool, std::optional<std::string>> Parser::parseDcls() {
+std::optional<Symbol> Parser::parseDcls() {
 #ifdef DEBUG
     std::cout << __PRETTY_FUNCTION__ << '\n';
 #endif
 
     gotoCorrectRule(Symbol::dcls, "Symbol::dcls"s);
-    const auto& elem = State::instance().finalChart().at(_elemIdx);
-    const auto& rhs = CFG[elem->ruleIdx()].second;
+    const auto& rhs = CFG[State::instance().finalChart().at(_elemIdx)->ruleIdx()].second;
     --_elemIdx;
-    if (rhs.empty()) {
-        return { rhs.empty(), {} };
-    } else if (rhs[3] == Symbol::NUM) {
-        return { rhs.empty(), State::instance().getToken(elem->startIdx() + 3).value };
+    if (!rhs.empty()) {
+        return rhs[3];
     }
 
-    return { rhs.empty(), State::instance().getToken(elem->startIdx() + 4).value };
+    return {};
 }
 
-std::unique_ptr<ast::Dcl> Parser::parseDcl() {
+std::unique_ptr<ast::Dcl> Parser::parseDcl(Symbol *sym) {
 #ifdef DEBUG
     std::cout << __PRETTY_FUNCTION__ << '\n';
 #endif
@@ -399,6 +402,13 @@ std::unique_ptr<ast::Dcl> Parser::parseDcl() {
     gotoCorrectRule(Symbol::dcl, "Symbol::dcl"s);
     const auto& rhs = CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].second;
     std::unique_ptr<ast::Dcl> dcl(new ast::Dcl);
+    if (sym) {
+        if (*sym == Symbol::NUM) {
+            dcl->setValue(State::instance().getToken(State::instance().finalChart().at(_elemIdx)->startIdx() + 3).value);
+        } else {
+            dcl->setValue(State::instance().getToken(State::instance().finalChart().at(_elemIdx)->startIdx() + 4).value);
+        }
+    }
     --_elemIdx;
     if (CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].second.size() == 1) {
         dcl->setId(State::instance().getToken(State::instance().finalChart()[_elemIdx]->startIdx() + 1).value);

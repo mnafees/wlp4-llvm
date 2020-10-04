@@ -51,7 +51,19 @@ void State::initLLVMCodegen() {
 
     // printf
     auto printfType = llvm::FunctionType::get(Builder->getInt32Ty(), {llvm::Type::getInt8PtrTy(TheContext)}, true);
-    llvm::Function::Create(printfType, llvm::Function::ExternalLinkage, "printf", TheModule.get());
+    auto printfFunc = llvm::Function::Create(printfType, llvm::Function::ExternalLinkage, "printf", TheModule.get());
+    printfFunc->setDSOLocal(true);
+
+    // malloc
+    auto mallocType = llvm::FunctionType::get(Builder->getInt8PtrTy(), {llvm::Type::getInt32Ty(TheContext)}, false);
+    auto mallocFunc = llvm::Function::Create(mallocType, llvm::Function::ExternalLinkage, "malloc", TheModule.get());
+    mallocFunc->addAttribute(0, llvm::Attribute::NoAlias);
+    mallocFunc->setDSOLocal(true);
+
+    // free
+    auto freeType = llvm::FunctionType::get(Builder->getVoidTy(), {llvm::Type::getInt8PtrTy(TheContext)}, false);
+    auto freeFunc = llvm::Function::Create(freeType, llvm::Function::ExternalLinkage, "free", TheModule.get());
+    freeFunc->setDSOLocal(true);
 }
 
 void State::dumpObjectFile() {
