@@ -16,6 +16,7 @@
 // LLVM
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DerivedTypes.h"
+#include "llvm/Config/llvm-config.h"
 
 static std::map<std::string, std::map<std::string, llvm::Value*>> dclSymbolTable;
 static std::map<std::string, llvm::Function*> functions;
@@ -66,7 +67,11 @@ llvm::Value* Procedure::codegen() {
     }
     for (auto& arg : func->args()) {
         auto store = Builder->CreateStore(&arg, dclSymbolTable[_name][arg.getName()]);
+#if LLVM_VERSION_MAJOR >= 10
+        store->setAlignment(llvm::MaybeAlign(4));
+#else
         store->setAlignment(4);
+#endif
     }
     for (const auto& dcl : _dcls) {
         auto dclValue = dclSymbolTable[_name][dcl->id()];
@@ -77,7 +82,11 @@ llvm::Value* Procedure::codegen() {
             store = Builder->CreateStore(llvm::ConstantPointerNull::get(
                 llvm::PointerType::get(Builder->getInt32Ty(), 0)), dclValue);
         }
+#if LLVM_VERSION_MAJOR >= 10
+        store->setAlignment(llvm::MaybeAlign(4));
+#else
         store->setAlignment(4);
+#endif
     }
     for (const auto& stmt : _stmts) {
         auto BB = llvm::BasicBlock::Create(Builder->getContext(), "", func);
@@ -104,7 +113,11 @@ llvm::Value* Dcl::codegen() {
     } else if (_type == DclType::INT_STAR) {
         alloca = Builder->CreateAlloca(llvm::PointerType::getInt32PtrTy(Builder->getContext()));
     }
-    alloca->setAlignment(4);
+#if LLVM_VERSION_MAJOR >= 10
+        alloca->setAlignment(llvm::MaybeAlign(4));
+#else
+        alloca->setAlignment(4);
+#endif
     return alloca;
 }
 
@@ -177,7 +190,11 @@ llvm::Value* LvalueStatement::codegen() {
 #endif
 
     auto store = Builder->CreateStore(_expr->codegen(), _lvalue->codegen());
-    store->setAlignment(4);
+#if LLVM_VERSION_MAJOR >= 10
+        store->setAlignment(llvm::MaybeAlign(4));
+#else
+        store->setAlignment(4);
+#endif
     return store;
 }
 

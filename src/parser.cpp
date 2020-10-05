@@ -5,7 +5,6 @@
 #ifdef DEBUG
 #include <iostream>
 #endif
-#include <map>
 
 // WLP4-LLVM
 #include "state.hpp"
@@ -22,21 +21,34 @@
 
 using namespace std::string_literals;
 
-namespace wlp4 {
-
-void Parser::parse() {
 #ifdef DEBUG
-    std::cout << __PRETTY_FUNCTION__ << '\n';
+#define PRINT_FUNC std::cout << __PRETTY_FUNCTION__ << '\n'
+#else
+#define PRINT_FUNC
 #endif
 
-    _elemIdx = State::instance().finalChart().size() - 1;
+#define FETCH_RULE_RHS const auto& rhs = CFG[state.finalChart().at(_elemIdx)->ruleIdx()].second
+#define PARSE_BEGIN(ast, sym) \
+    ast##Ptr Parser::parse##ast() { \
+    PRINT_FUNC; \
+    gotoCorrectRule(sym, #sym##s); \
+    FETCH_RULE_RHS;
+#define PARSE_END }
+
+namespace wlp4 {
+
+auto& state = State::instance();
+
+void Parser::parse() {
+    PRINT_FUNC;
+    _elemIdx = state.finalChart().size() - 1;
     Symbol lhs;
     // first we need to populate the symbol table for all procedures
     for (; _elemIdx >= 0;) {
-        lhs = CFG[State::instance().finalChart().at(_elemIdx)->ruleIdx()].first;
+        lhs = CFG[state.finalChart().at(_elemIdx)->ruleIdx()].first;
         if (lhs == Symbol::procedure || lhs == Symbol::main_s) {
-            const auto nameIdx = State::instance().finalChart().at(_elemIdx)->startIdx() + 1;
-            _currProcedureName = State::instance().getToken(nameIdx).value;
+            const auto nameIdx = state.finalChart().at(_elemIdx)->startIdx() + 1;
+            _currProcedureName = state.getToken(nameIdx).value;
             --_elemIdx;
         } else if (lhs == Symbol::dcls) {
             for (;;) {
@@ -49,7 +61,6 @@ void Parser::parse() {
                         std::cout << _currProcedureName << " has declaration '" << dcl->id() << "' of type INT_STAR\n";
                     }
 #endif
-                    State::instance().addDclToProc(_currProcedureName, dcl->id(), dcl->type());
                 } else {
                     break;
                 }
@@ -60,24 +71,22 @@ void Parser::parse() {
                 throw std::runtime_error("the second parameter for wain() needs to be an int");
             }
             auto dcl1 = parseDcl();
-            State::instance().addDclToProc(_currProcedureName, dcl1->id(), dcl1->type());
-            State::instance().addDclToProc(_currProcedureName, dcl2->id(), dcl2->type());
         } else {
             --_elemIdx;
         }
     }
 
     std::unique_ptr<ast::Procedure> proc;
-    _elemIdx = State::instance().finalChart().size() - 1;
+    _elemIdx = state.finalChart().size() - 1;
     for (;;) {
-        lhs = CFG[State::instance().finalChart().at(_elemIdx)->ruleIdx()].first;
+        lhs = CFG[state.finalChart().at(_elemIdx)->ruleIdx()].first;
         if (lhs == Symbol::procedure || lhs == Symbol::main_s) {
             if (proc) {
-                State::instance().addProcedure(std::move(proc));
+                state.addProcedure(std::move(proc));
                 proc = nullptr;
             }
-            const auto nameIdx = State::instance().finalChart().at(_elemIdx)->startIdx() + 1;
-            proc = std::make_unique<ast::Procedure>(State::instance().getToken(nameIdx).value);
+            const auto nameIdx = state.finalChart().at(_elemIdx)->startIdx() + 1;
+            proc = std::make_unique<ast::Procedure>(state.getToken(nameIdx).value);
             _currProcedureName = proc->name();
             --_elemIdx;
         } else if (lhs == Symbol::expr) {
@@ -97,7 +106,6 @@ void Parser::parse() {
 #ifdef DEBUG
                     std::cout << "Value of dcl '" << dcl->id() << "' is '" << dcl->value() << "'\n";
 #endif
-                    State::instance().addDclToProc(proc->name(), dcl->id(), dcl->type());
                     proc->addDeclaration(std::move(dcl));
                 } else {
                     break;
@@ -115,14 +123,14 @@ void Parser::parse() {
 
         }
         if (_elemIdx < 0) {
-            State::instance().addProcedure(std::move(proc));
+            state.addProcedure(std::move(proc));
             break;
         }
     }
 }
 
 void Parser::gotoCorrectRule(Symbol lhs, const std::string& name) {
-    while (_elemIdx >= 0 && CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].first != lhs) {
+    while (_elemIdx >= 0 && CFG[state.finalChart()[_elemIdx]->ruleIdx()].first != lhs) {
         --_elemIdx;
     }
     if (_elemIdx < 0) {
@@ -130,15 +138,9 @@ void Parser::gotoCorrectRule(Symbol lhs, const std::string& name) {
     }
 }
 
-std::unique_ptr<ast::Expr> Parser::parseExpr() {
-#ifdef DEBUG
-    std::cout << __PRETTY_FUNCTION__ << '\n';
-#endif
-
-    gotoCorrectRule(Symbol::expr, "Symbol::expr"s);
-    const auto& rhs = CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].second;
+PARSE_BEGIN(Expr, Symbol::expr)
     --_elemIdx;
-    std::unique_ptr<ast::Expr> expr(new ast::Expr(std::move(parseTerm())));
+    ExprPtr expr(new ast::Expr(std::move(parseTerm())));
     if (rhs.size() > 1) {
         if (rhs[1] == Symbol::PLUS) {
             expr->setPlusWith(std::move(parseExpr()));
@@ -151,18 +153,12 @@ std::unique_ptr<ast::Expr> Parser::parseExpr() {
     }
 
     return std::move(expr);
-}
+PARSE_END
 
-std::unique_ptr<ast::Term> Parser::parseTerm() {
-#ifdef DEBUG
-    std::cout << __PRETTY_FUNCTION__ << '\n';
-#endif
-
-    gotoCorrectRule(Symbol::term, "Symbol::term"s);
-    const auto& rhs = CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].second;
+PARSE_BEGIN(Term, Symbol::term)
     --_elemIdx;
     auto factor = parseFactor();
-    std::unique_ptr<ast::Term> term(new ast::Term(std::move(factor)));
+    TermPtr term(new ast::Term(std::move(factor)));
     if (rhs.size() > 1) {
         auto rightTerm = parseTerm();
         if (rhs[1] == Symbol::STAR) {
@@ -178,26 +174,20 @@ std::unique_ptr<ast::Term> Parser::parseTerm() {
     }
 
     return std::move(term);
-}
+PARSE_END
 
-std::unique_ptr<ast::Factor> Parser::parseFactor() {
-#ifdef DEBUG
-    std::cout << __PRETTY_FUNCTION__ << '\n';
-#endif
-
-    gotoCorrectRule(Symbol::factor, "Symbol::factor"s);
-    std::unique_ptr<ast::Factor> factor(new ast::Factor(_currProcedureName));
-    const auto& rhs = CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].second;
+PARSE_BEGIN(Factor, Symbol::factor)
+    FactorPtr factor(new ast::Factor(_currProcedureName));
     if (rhs.size() > 1) {
         if (rhs[0] == Symbol::ID) {
             if (rhs.size() == 3) {
                 // factor -> ID LPAREN RPAREN
-                factor->setProcedureCall(State::instance().getToken(
-                    State::instance().finalChart()[_elemIdx]->startIdx()).value);
+                factor->setProcedureCall(state.getToken(
+                    state.finalChart()[_elemIdx]->startIdx()).value);
                 --_elemIdx;
             } else {
                 // FIXME: Really bad design here!
-                const auto& procName = State::instance().getToken(State::instance().finalChart()[_elemIdx]->startIdx()).value;
+                const auto& procName = state.getToken(state.finalChart()[_elemIdx]->startIdx()).value;
                 --_elemIdx;
                 factor->setValue(std::move(parseArglist()));
                 factor->setProcedureCall(procName);
@@ -230,9 +220,9 @@ std::unique_ptr<ast::Factor> Parser::parseFactor() {
         }
     } else {
         if (rhs[0] == Symbol::ID) {
-            factor->setValue(State::instance().getToken(State::instance().finalChart()[_elemIdx]->startIdx()).value);
+            factor->setValue(state.getToken(state.finalChart()[_elemIdx]->startIdx()).value);
         } else if (rhs[0] == Symbol::NUM) {
-            unsigned int num = std::stoi(State::instance().getToken(State::instance().finalChart()[_elemIdx]->startIdx()).value);
+            unsigned int num = std::stoi(state.getToken(state.finalChart()[_elemIdx]->startIdx()).value);
             factor->setValue(num);
         } else if (rhs[0] == Symbol::NULL_S) {
             factor->setValue(ast::NullType());
@@ -241,18 +231,12 @@ std::unique_ptr<ast::Factor> Parser::parseFactor() {
     }
 
     return std::move(factor);
-}
+PARSE_END
 
-std::unique_ptr<ast::Lvalue> Parser::parseLvalue() {
-#ifdef DEBUG
-    std::cout << __PRETTY_FUNCTION__ << '\n';
-#endif
-
-    gotoCorrectRule(Symbol::lvalue, "Symbol::lvalue"s);
-    std::unique_ptr<ast::Lvalue> lvalue(new ast::Lvalue(_currProcedureName));
-    const auto& rhs = CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].second;
+PARSE_BEGIN(Lvalue, Symbol::lvalue)
+    LvaluePtr lvalue(new ast::Lvalue(_currProcedureName));
     if (rhs[0] == Symbol::ID) {
-        lvalue->setValue(State::instance().getToken(State::instance().finalChart()[_elemIdx]->startIdx()).value);
+        lvalue->setValue(state.getToken(state.finalChart()[_elemIdx]->startIdx()).value);
         --_elemIdx;
     } else {
         --_elemIdx;
@@ -268,47 +252,32 @@ std::unique_ptr<ast::Lvalue> Parser::parseLvalue() {
     }
 
     return std::move(lvalue);
-}
+PARSE_END
 
-std::unique_ptr<ast::Arglist> Parser::parseArglist() {
-#ifdef DEBUG
-    std::cout << __PRETTY_FUNCTION__ << '\n';
-#endif
-
-    gotoCorrectRule(Symbol::arglist, "Symbol::arglist"s);
-    ast::Arglist* arglist = nullptr;
-    const auto& rhs = CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].second;
+PARSE_BEGIN(Arglist, Symbol::arglist)
+    ArglistPtr arglist;
     --_elemIdx;
     if (rhs.size() == 1) {
-        arglist = new ast::Arglist(std::move(parseExpr()));
+        arglist = std::make_unique<ast::Arglist>(std::move(parseExpr()));
     } else {
-        arglist = new ast::Arglist(std::move(parseArglist()));
+        arglist = std::make_unique<ast::Arglist>(std::move(parseArglist()));
         arglist->setExpr(std::move(parseExpr()));
     }
 
-    return std::unique_ptr<ast::Arglist>(arglist);
-}
+    return std::move(arglist);
+PARSE_END
 
 bool Parser::parseStatements() {
-#ifdef DEBUG
-    std::cout << __PRETTY_FUNCTION__ << '\n';
-#endif
-
+    PRINT_FUNC;
     gotoCorrectRule(Symbol::statements, "Symbol::statements"s);
-    const auto& rhs = CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].second;
+    FETCH_RULE_RHS;
     --_elemIdx;
 
     return rhs.empty();
 }
 
-std::unique_ptr<ast::Statement> Parser::parseStatement() {
-#ifdef DEBUG
-    std::cout << __PRETTY_FUNCTION__ << '\n';
-#endif
-
-    gotoCorrectRule(Symbol::statement, "Symbol::statement"s);
-    std::unique_ptr<ast::Statement> stmt;
-    const auto& rhs = CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].second;
+PARSE_BEGIN(Statement, Symbol::statement)
+    StatementPtr stmt;
     --_elemIdx;
     if (rhs[0] == Symbol::lvalue) {
         std::unique_ptr<ast::LvalueStatement> lvalueStmt(new ast::LvalueStatement);
@@ -356,16 +325,10 @@ std::unique_ptr<ast::Statement> Parser::parseStatement() {
     }
 
     return std::move(stmt);
-}
+PARSE_END
 
-std::unique_ptr<ast::Test> Parser::parseTest() {
-#ifdef DEBUG
-    std::cout << __PRETTY_FUNCTION__ << '\n';
-#endif
-
-    gotoCorrectRule(Symbol::test, "Symbol::test"s);
-    std::unique_ptr<ast::Test> test(new ast::Test);
-    const auto& rhs = CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].second;
+PARSE_BEGIN(Test, Symbol::test)
+    TestPtr test(new ast::Test);
     --_elemIdx;
     auto rightExpr = parseExpr();
     auto leftExpr = parseExpr();
@@ -377,15 +340,12 @@ std::unique_ptr<ast::Test> Parser::parseTest() {
     test->setOp(rhs[1]);
 
     return std::move(test);
-}
+PARSE_END
 
 std::optional<Symbol> Parser::parseDcls() {
-#ifdef DEBUG
-    std::cout << __PRETTY_FUNCTION__ << '\n';
-#endif
-
+    PRINT_FUNC;
     gotoCorrectRule(Symbol::dcls, "Symbol::dcls"s);
-    const auto& rhs = CFG[State::instance().finalChart().at(_elemIdx)->ruleIdx()].second;
+    FETCH_RULE_RHS;
     --_elemIdx;
     if (!rhs.empty()) {
         return rhs[3];
@@ -394,30 +354,30 @@ std::optional<Symbol> Parser::parseDcls() {
     return {};
 }
 
-std::unique_ptr<ast::Dcl> Parser::parseDcl(Symbol *sym) {
-#ifdef DEBUG
-    std::cout << __PRETTY_FUNCTION__ << '\n';
-#endif
-
+DclPtr Parser::parseDcl(Symbol *sym) {
+    PRINT_FUNC;
     gotoCorrectRule(Symbol::dcl, "Symbol::dcl"s);
-    const auto& rhs = CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].second;
-    std::unique_ptr<ast::Dcl> dcl(new ast::Dcl);
+    FETCH_RULE_RHS;
+    DclPtr dcl(new ast::Dcl);
     if (sym) {
         if (*sym == Symbol::NUM) {
-            dcl->setValue(State::instance().getToken(State::instance().finalChart().at(_elemIdx)->startIdx() + 3).value);
+            dcl->setValue(state.getToken(state.finalChart().at(_elemIdx)->startIdx() + 3).value);
         } else {
-            dcl->setValue(State::instance().getToken(State::instance().finalChart().at(_elemIdx)->startIdx() + 4).value);
+            dcl->setValue(state.getToken(state.finalChart().at(_elemIdx)->startIdx() + 4).value);
         }
     }
     --_elemIdx;
-    if (CFG[State::instance().finalChart()[_elemIdx]->ruleIdx()].second.size() == 1) {
-        dcl->setId(State::instance().getToken(State::instance().finalChart()[_elemIdx]->startIdx() + 1).value);
+    if (CFG[state.finalChart()[_elemIdx]->ruleIdx()].second.size() == 1) {
+        dcl->setId(state.getToken(state.finalChart()[_elemIdx]->startIdx() + 1).value);
         dcl->setType(ast::DclType::INT);
     } else {
-        dcl->setId(State::instance().getToken(State::instance().finalChart()[_elemIdx]->startIdx() + 2).value);
+        dcl->setId(state.getToken(state.finalChart()[_elemIdx]->startIdx() + 2).value);
         dcl->setType(ast::DclType::INT_STAR);
     }
     --_elemIdx;
+    if (sym) {
+        state.addDclToProc(_currProcedureName, dcl->id(), dcl->type());
+    }
 
     return std::move(dcl);
 }

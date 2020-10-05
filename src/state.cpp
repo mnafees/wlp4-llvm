@@ -22,6 +22,7 @@
 #include "llvm/Support/CodeGen.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/FileSystem.h"
+#include "llvm/Config/llvm-config.h"
 
 namespace wlp4 {
 
@@ -75,7 +76,11 @@ void State::dumpObjectFile() {
     }
 
     llvm::legacy::PassManager pass;
+#if LLVM_VERSION_MAJOR >= 10
+    auto FileType = llvm::CodeGenFileType::CGFT_ObjectFile;
+#else
     auto FileType = llvm::TargetMachine::CGFT_ObjectFile;
+#endif
 
     if (TargetMachine->addPassesToEmitFile(pass, dest, nullptr, FileType)) {
         throw std::runtime_error("TargetMachine can't emit a file of this type"s);

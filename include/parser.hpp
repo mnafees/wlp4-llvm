@@ -17,16 +17,16 @@ public:
 
 private:
     void gotoCorrectRule(Symbol lhs, const std::string& name);
-    std::unique_ptr<ast::Expr> parseExpr();
-    std::unique_ptr<ast::Term> parseTerm();
-    std::unique_ptr<ast::Factor> parseFactor();
-    std::unique_ptr<ast::Lvalue> parseLvalue();
-    std::unique_ptr<ast::Arglist> parseArglist();
+    ExprPtr parseExpr();
+    TermPtr parseTerm();
+    FactorPtr parseFactor();
+    LvaluePtr parseLvalue();
+    ArglistPtr parseArglist();
     bool parseStatements();
-    std::unique_ptr<ast::Statement> parseStatement();
-    std::unique_ptr<ast::Test> parseTest();
+    StatementPtr parseStatement();
+    TestPtr parseTest();
     std::optional<Symbol> parseDcls();
-    std::unique_ptr<ast::Dcl> parseDcl(Symbol *sym = nullptr);
+    DclPtr parseDcl(Symbol *sym = nullptr);
 
     long _elemIdx;
     std::string _currProcedureName;

@@ -5,7 +5,7 @@ project(wlp4-llvm)
 find_package(LLVM REQUIRED CONFIG)
 
 if (${LLVM_PACKAGE_VERSION} VERSION_LESS "8.0.0")
-    message(FATAL "Please use LLVM versions 8.0.0 and above to build wlp4-llvm")
+    message(FATAL_ERROR "Please use LLVM versions 8.0.0 and above to build wlp4-llvm")
 endif()
 
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
