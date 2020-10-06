@@ -23,8 +23,8 @@ static std::map<std::string, llvm::Function*> functions;
 
 namespace wlp4::ast {
 
-auto& Builder = State::instance().Builder;
-auto& TheModule = State::instance().TheModule;
+auto& Builder = STATE.Builder;
+auto& TheModule = STATE.TheModule;
 
 llvm::Value* Procedure::codegen() {
 #ifdef DEBUG

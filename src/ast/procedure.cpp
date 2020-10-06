@@ -9,7 +9,8 @@
 namespace wlp4::ast {
 
 Procedure::Procedure(std::string name) :
-    _name(std::move(name))
+    _name(std::move(name)),
+    _retExpr(nullptr)
 {}
 
 Procedure::~Procedure() {}
@@ -38,6 +39,10 @@ void Procedure::addStatement(StatementPtr stmt) {
 
 void Procedure::setReturnExpr(ExprPtr expr) {
     _retExpr = std::move(expr);
+}
+
+const ExprPtr& Procedure::returnExpr() const {
+    return _retExpr;
 }
 
 void Procedure::validateName(const std::string& name) {

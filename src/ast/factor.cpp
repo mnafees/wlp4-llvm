@@ -47,7 +47,7 @@ DclType Factor::type() const {
     } else if (std::holds_alternative<std::string>(_value)) {
         // When factor derives ID, the derived ID must have a type, and the type of the
         // factor is the same as the type of the ID
-        return State::instance().typeForDcl(_procedureName, std::get<std::string>(_value));
+        return STATE.typeForDcl(_procedureName, std::get<std::string>(_value));
     } else if (std::holds_alternative<ExprPtr>(_value)) {
         if (_parenExpr) {
             // The type of a factor deriving LPAREN expr RPAREN is the same as the type of the expr

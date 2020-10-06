@@ -21,7 +21,7 @@ DclType Lvalue::type() const {
     if (std::holds_alternative<std::string>(_value)) {
         // When lvalue derives ID, the derived ID must have a type, and the type of the
         // lvalue is the same as the type of the ID
-        return State::instance().typeForDcl(_procedureName, std::get<std::string>(_value));
+        return STATE.typeForDcl(_procedureName, std::get<std::string>(_value));
     } else if (std::holds_alternative<LvaluePtr>(_value)) {
         // The type of an lvalue deriving LPAREN lvalue RPAREN is the same as the type
         // of the derived lvalue

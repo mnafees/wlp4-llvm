@@ -30,23 +30,22 @@ int main(int argc, const char* argv[]) {
     try {
         using namespace wlp4;
 
-        auto& state = State::instance();
         if (!fs::exists(fs::path(InputFile.c_str()))) {
             throw std::runtime_error("input file does not exist");
         }
-        state.setInputFilePath(InputFile.c_str());
-        state.setOutputFilePath(OutputFilename.c_str());
-        state.setCompilerPath(Compiler.c_str());
+        STATE.setInputFilePath(InputFile.c_str());
+        STATE.setOutputFilePath(OutputFilename.c_str());
+        STATE.setCompilerPath(Compiler.c_str());
         // All of the below operations simply populate data in the State singeton object
         Tokeniser().tokenise();
         Recogniser().recognise();
         Parser().parse();
 
-        state.initLLVMCodegen();
-        for (const auto& proc : State::instance().procedures()) {
+        STATE.initLLVMCodegen();
+        for (const auto& proc : STATE.procedures()) {
             proc->codegen();
         }
-        state.compile();
+        STATE.compile();
     } catch (const std::exception& e) {
         std::cerr << "wlp4c: " << e.what() << '\n'
                   << "compilation terminated." << '\n';

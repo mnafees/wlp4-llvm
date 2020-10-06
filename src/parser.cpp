@@ -27,7 +27,7 @@ using namespace std::string_literals;
 #define PRINT_FUNC
 #endif
 
-#define FETCH_RULE_RHS const auto& rhs = CFG[state.finalChart().at(_elemIdx)->ruleIdx()].second
+#define FETCH_RULE_RHS const auto& rhs = CFG[STATE.finalChart().at(_elemIdx)->ruleIdx()].second
 #define PARSE_BEGIN(ast, sym) \
     ast##Ptr Parser::parse##ast() { \
     PRINT_FUNC; \
@@ -37,18 +37,16 @@ using namespace std::string_literals;
 
 namespace wlp4 {
 
-auto& state = State::instance();
-
 void Parser::parse() {
     PRINT_FUNC;
-    _elemIdx = state.finalChart().size() - 1;
+    _elemIdx = STATE.finalChart().size() - 1;
     Symbol lhs;
     // first we need to populate the symbol table for all procedures
     for (; _elemIdx >= 0;) {
-        lhs = CFG[state.finalChart().at(_elemIdx)->ruleIdx()].first;
+        lhs = CFG[STATE.finalChart().at(_elemIdx)->ruleIdx()].first;
         if (lhs == Symbol::procedure || lhs == Symbol::main_s) {
-            const auto nameIdx = state.finalChart().at(_elemIdx)->startIdx() + 1;
-            _currProcedureName = state.getToken(nameIdx).value;
+            const auto nameIdx = STATE.finalChart().at(_elemIdx)->startIdx() + 1;
+            _currProcedureName = STATE.getToken(nameIdx).value;
             --_elemIdx;
         } else if (lhs == Symbol::dcls) {
             for (;;) {
@@ -71,25 +69,36 @@ void Parser::parse() {
                 throw std::runtime_error("the second parameter for wain() needs to be an int");
             }
             auto dcl1 = parseDcl();
+        } else if (lhs == Symbol::params) {
+            while (!parseParams()) {
+                auto dcl = parseDcl();
+#ifdef DEBUG
+                if (dcl->type() == ast::DclType::INT) {
+                    std::cout << _currProcedureName << " has declaration '" << dcl->id() << "' of type INT\n";
+                } else if (dcl->type() == ast::DclType::INT_STAR) {
+                    std::cout << _currProcedureName << " has declaration '" << dcl->id() << "' of type INT_STAR\n";
+                }
+#endif
+            }
         } else {
             --_elemIdx;
         }
     }
 
     std::unique_ptr<ast::Procedure> proc;
-    _elemIdx = state.finalChart().size() - 1;
+    _elemIdx = STATE.finalChart().size() - 1;
     for (;;) {
-        lhs = CFG[state.finalChart().at(_elemIdx)->ruleIdx()].first;
+        lhs = CFG[STATE.finalChart().at(_elemIdx)->ruleIdx()].first;
         if (lhs == Symbol::procedure || lhs == Symbol::main_s) {
             if (proc) {
-                state.addProcedure(std::move(proc));
+                STATE.addProcedure(std::move(proc));
                 proc = nullptr;
             }
-            const auto nameIdx = state.finalChart().at(_elemIdx)->startIdx() + 1;
-            proc = std::make_unique<ast::Procedure>(state.getToken(nameIdx).value);
+            const auto nameIdx = STATE.finalChart().at(_elemIdx)->startIdx() + 1;
+            proc = std::make_unique<ast::Procedure>(STATE.getToken(nameIdx).value);
             _currProcedureName = proc->name();
             --_elemIdx;
-        } else if (lhs == Symbol::expr) {
+        } else if (lhs == Symbol::expr && !proc->returnExpr()) {
             auto expr = parseExpr();
             if (expr->type() != ast::DclType::INT) {
                 throw std::runtime_error("return value in procedure "s + proc->name() + " should be of type int");
@@ -97,19 +106,16 @@ void Parser::parse() {
             proc->setReturnExpr(std::move(expr));
         } else if (lhs == Symbol::statements) {
             while (!parseStatements()) {
-                proc->addStatement(std::move(parseStatement()));
+                proc->addStatement(parseStatement());
             }
         } else if (lhs == Symbol::dcls) {
-            for (;;) {
-                if (auto opt = parseDcls(); opt.has_value()) {
-                    auto dcl = parseDcl(&opt.value());
+            auto opt = parseDcls();
+            for (; opt.has_value(); opt = parseDcls()) {
+                auto dcl = parseDcl(&opt.value());
 #ifdef DEBUG
-                    std::cout << "Value of dcl '" << dcl->id() << "' is '" << dcl->value() << "'\n";
+                std::cout << "Value of dcl '" << dcl->id() << "' is '" << dcl->value() << "'\n";
 #endif
-                    proc->addDeclaration(std::move(dcl));
-                } else {
-                    break;
-                }
+                proc->addDeclaration(std::move(dcl));
             }
         } else if (lhs == Symbol::dcl && proc->isWain()) {
             auto dcl2 = parseDcl();
@@ -120,17 +126,21 @@ void Parser::parse() {
             proc->addParam(std::move(dcl1));
             proc->addParam(std::move(dcl2));
         } else if (lhs == Symbol::params) {
-
+            while (!parseParams()) {
+                proc->addParam(parseDcl());
+            }
+        } else {
+            --_elemIdx;
         }
         if (_elemIdx < 0) {
-            state.addProcedure(std::move(proc));
+            STATE.addProcedure(std::move(proc));
             break;
         }
     }
 }
 
 void Parser::gotoCorrectRule(Symbol lhs, const std::string& name) {
-    while (_elemIdx >= 0 && CFG[state.finalChart()[_elemIdx]->ruleIdx()].first != lhs) {
+    while (_elemIdx >= 0 && CFG[STATE.finalChart()[_elemIdx]->ruleIdx()].first != lhs) {
         --_elemIdx;
     }
     if (_elemIdx < 0) {
@@ -140,19 +150,19 @@ void Parser::gotoCorrectRule(Symbol lhs, const std::string& name) {
 
 PARSE_BEGIN(Expr, Symbol::expr)
     --_elemIdx;
-    ExprPtr expr(new ast::Expr(std::move(parseTerm())));
+    ExprPtr expr(new ast::Expr(parseTerm()));
     if (rhs.size() > 1) {
         if (rhs[1] == Symbol::PLUS) {
-            expr->setPlusWith(std::move(parseExpr()));
+            expr->setPlusWith(parseExpr());
         } else if (rhs[1] == Symbol::MINUS) {
-            expr->setMinusWith(std::move(parseExpr()));
+            expr->setMinusWith(parseExpr());
         }
     }
     if (expr->type() == ast::DclType::INVALID) {
         throw std::runtime_error("invalid expr generated");
     }
 
-    return std::move(expr);
+    return expr;
 PARSE_END
 
 PARSE_BEGIN(Term, Symbol::term)
@@ -173,7 +183,7 @@ PARSE_BEGIN(Term, Symbol::term)
         }
     }
 
-    return std::move(term);
+    return term;
 PARSE_END
 
 PARSE_BEGIN(Factor, Symbol::factor)
@@ -182,21 +192,21 @@ PARSE_BEGIN(Factor, Symbol::factor)
         if (rhs[0] == Symbol::ID) {
             if (rhs.size() == 3) {
                 // factor -> ID LPAREN RPAREN
-                factor->setProcedureCall(state.getToken(
-                    state.finalChart()[_elemIdx]->startIdx()).value);
+                factor->setProcedureCall(STATE.getToken(
+                    STATE.finalChart()[_elemIdx]->startIdx()).value);
                 --_elemIdx;
             } else {
                 // FIXME: Really bad design here!
-                const auto& procName = state.getToken(state.finalChart()[_elemIdx]->startIdx()).value;
+                const auto& procName = STATE.getToken(STATE.finalChart()[_elemIdx]->startIdx()).value;
                 --_elemIdx;
-                factor->setValue(std::move(parseArglist()));
+                factor->setValue(parseArglist());
                 factor->setProcedureCall(procName);
             }
         } else {
             --_elemIdx;
             if (rhs[0] == Symbol::LPAREN) {
                 // factor -> LPAREN expr RPAREN
-                factor->setValue(std::move(parseExpr()));
+                factor->setValue(parseExpr());
                 factor->setParenExpr();
             } else if (rhs[0] == Symbol::AMP) {
                 auto lvalue = parseLvalue();
@@ -220,9 +230,9 @@ PARSE_BEGIN(Factor, Symbol::factor)
         }
     } else {
         if (rhs[0] == Symbol::ID) {
-            factor->setValue(state.getToken(state.finalChart()[_elemIdx]->startIdx()).value);
+            factor->setValue(STATE.getToken(STATE.finalChart()[_elemIdx]->startIdx()).value);
         } else if (rhs[0] == Symbol::NUM) {
-            unsigned int num = std::stoi(state.getToken(state.finalChart()[_elemIdx]->startIdx()).value);
+            unsigned int num = std::stoi(STATE.getToken(STATE.finalChart()[_elemIdx]->startIdx()).value);
             factor->setValue(num);
         } else if (rhs[0] == Symbol::NULL_S) {
             factor->setValue(ast::NullType());
@@ -230,13 +240,13 @@ PARSE_BEGIN(Factor, Symbol::factor)
         --_elemIdx;
     }
 
-    return std::move(factor);
+    return factor;
 PARSE_END
 
 PARSE_BEGIN(Lvalue, Symbol::lvalue)
     LvaluePtr lvalue(new ast::Lvalue(_currProcedureName));
     if (rhs[0] == Symbol::ID) {
-        lvalue->setValue(state.getToken(state.finalChart()[_elemIdx]->startIdx()).value);
+        lvalue->setValue(STATE.getToken(STATE.finalChart()[_elemIdx]->startIdx()).value);
         --_elemIdx;
     } else {
         --_elemIdx;
@@ -247,24 +257,24 @@ PARSE_BEGIN(Lvalue, Symbol::lvalue)
             }
             lvalue->setValue(std::move(factor));
         } else if (rhs[0] == Symbol::LPAREN) {
-            lvalue->setValue(std::move(parseLvalue()));
+            lvalue->setValue(parseLvalue());
         }
     }
 
-    return std::move(lvalue);
+    return lvalue;
 PARSE_END
 
 PARSE_BEGIN(Arglist, Symbol::arglist)
     ArglistPtr arglist;
     --_elemIdx;
     if (rhs.size() == 1) {
-        arglist = std::make_unique<ast::Arglist>(std::move(parseExpr()));
+        arglist = std::make_unique<ast::Arglist>(parseExpr());
     } else {
-        arglist = std::make_unique<ast::Arglist>(std::move(parseArglist()));
-        arglist->setExpr(std::move(parseExpr()));
+        arglist = std::make_unique<ast::Arglist>(parseArglist());
+        arglist->setExpr(parseExpr());
     }
 
-    return std::move(arglist);
+    return arglist;
 PARSE_END
 
 bool Parser::parseStatements() {
@@ -292,19 +302,19 @@ PARSE_BEGIN(Statement, Symbol::statement)
     } else if (rhs[0] == Symbol::IF) {
         std::unique_ptr<ast::IfStatement> ifStmt(new ast::IfStatement);
         while (!parseStatements()) {
-            ifStmt->addFalseStatement(std::move(parseStatement()));
+            ifStmt->addFalseStatement(parseStatement());
         }
         while (!parseStatements()) {
-            ifStmt->addTrueStatement(std::move(parseStatement()));
+            ifStmt->addTrueStatement(parseStatement());
         }
-        ifStmt->setTest(std::move(parseTest()));
+        ifStmt->setTest(parseTest());
         stmt = std::move(ifStmt);
     } else if (rhs[0] == Symbol::WHILE) {
         std::unique_ptr<ast::WhileStatement> whileStmt(new ast::WhileStatement);
         while (!parseStatements()) {
-            whileStmt->addStatement(std::move(parseStatement()));
+            whileStmt->addStatement(parseStatement());
         }
-        whileStmt->setTest(std::move(parseTest()));
+        whileStmt->setTest(parseTest());
         stmt = std::move(whileStmt);
     } else if (rhs[0] == Symbol::PRINTLN) {
         std::unique_ptr<ast::PrintlnStatement> printStmt(new ast::PrintlnStatement);
@@ -324,7 +334,7 @@ PARSE_BEGIN(Statement, Symbol::statement)
         stmt = std::move(delStmt);
     }
 
-    return std::move(stmt);
+    return stmt;
 PARSE_END
 
 PARSE_BEGIN(Test, Symbol::test)
@@ -339,7 +349,7 @@ PARSE_BEGIN(Test, Symbol::test)
     test->setLeftExpr(std::move(leftExpr));
     test->setOp(rhs[1]);
 
-    return std::move(test);
+    return test;
 PARSE_END
 
 std::optional<Symbol> Parser::parseDcls() {
@@ -361,23 +371,32 @@ DclPtr Parser::parseDcl(Symbol *sym) {
     DclPtr dcl(new ast::Dcl);
     if (sym) {
         if (*sym == Symbol::NUM) {
-            dcl->setValue(state.getToken(state.finalChart().at(_elemIdx)->startIdx() + 3).value);
+            dcl->setValue(STATE.getToken(STATE.finalChart().at(_elemIdx)->startIdx() + 3).value);
         } else {
-            dcl->setValue(state.getToken(state.finalChart().at(_elemIdx)->startIdx() + 4).value);
+            dcl->setValue(STATE.getToken(STATE.finalChart().at(_elemIdx)->startIdx() + 4).value);
         }
     }
     --_elemIdx;
-    if (CFG[state.finalChart()[_elemIdx]->ruleIdx()].second.size() == 1) {
-        dcl->setId(state.getToken(state.finalChart()[_elemIdx]->startIdx() + 1).value);
+    if (CFG[STATE.finalChart()[_elemIdx]->ruleIdx()].second.size() == 1) {
+        dcl->setId(STATE.getToken(STATE.finalChart()[_elemIdx]->startIdx() + 1).value);
         dcl->setType(ast::DclType::INT);
     } else {
-        dcl->setId(state.getToken(state.finalChart()[_elemIdx]->startIdx() + 2).value);
+        dcl->setId(STATE.getToken(STATE.finalChart()[_elemIdx]->startIdx() + 2).value);
         dcl->setType(ast::DclType::INT_STAR);
     }
     --_elemIdx;
-    state.addDclToProc(_currProcedureName, dcl->id(), dcl->type()); // FIXME: being called twice
+    STATE.addDclToProc(_currProcedureName, dcl->id(), dcl->type()); // FIXME: being called twice
 
-    return std::move(dcl);
+    return dcl;
+}
+
+bool Parser::parseParams() {
+    PRINT_FUNC;
+    gotoCorrectRule(Symbol::params, "Symbol::params"s);
+    FETCH_RULE_RHS;
+    --_elemIdx;
+
+    return rhs.empty();
 }
 
 } // namespace wlp4

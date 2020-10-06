@@ -19,7 +19,7 @@ bool isTerminal(Symbol sym) {
 void Tokeniser::tokenise() {
     using namespace std::string_literals;
 
-    std::ifstream fs(State::instance().inputFilePath());
+    std::ifstream fs(STATE.inputFilePath());
     if (fs.is_open()) {
         unsigned char ch = fs.get();
         std::string constructedToken;
@@ -36,31 +36,31 @@ void Tokeniser::tokenise() {
                 ch = fs.get();
                 continue;
             } else if (ch == '(') {
-                State::instance().addToken(Token{Symbol::LPAREN, col, line, "("});
+                STATE.addToken(Token{Symbol::LPAREN, col, line, "("});
             } else if (ch == ')') {
-                State::instance().addToken(Token{Symbol::RPAREN, col, line, ")"});
+                STATE.addToken(Token{Symbol::RPAREN, col, line, ")"});
             } else if (ch == '{') {
-                State::instance().addToken(Token{Symbol::LBRACE, col, line, "{"});
+                STATE.addToken(Token{Symbol::LBRACE, col, line, "{"});
             } else if (ch == '}') {
-                State::instance().addToken(Token{Symbol::RBRACE, col, line, "}"});
+                STATE.addToken(Token{Symbol::RBRACE, col, line, "}"});
             } else if (ch == '+') {
-                State::instance().addToken(Token{Symbol::PLUS, col, line, "+"});
+                STATE.addToken(Token{Symbol::PLUS, col, line, "+"});
             } else if (ch == '-') {
-                State::instance().addToken(Token{Symbol::MINUS, col, line, "-"});
+                STATE.addToken(Token{Symbol::MINUS, col, line, "-"});
             } else if (ch == '*') {
-                State::instance().addToken(Token{Symbol::STAR, col, line, "*"});
+                STATE.addToken(Token{Symbol::STAR, col, line, "*"});
             } else if (ch == '%') {
-                State::instance().addToken(Token{Symbol::PCT, col, line, "%"});
+                STATE.addToken(Token{Symbol::PCT, col, line, "%"});
             } else if (ch == ',') {
-                State::instance().addToken(Token{Symbol::COMMA, col, line, ","});
+                STATE.addToken(Token{Symbol::COMMA, col, line, ","});
             } else if (ch == ';') {
-                State::instance().addToken(Token{Symbol::SEMI, col, line, ";"});
+                STATE.addToken(Token{Symbol::SEMI, col, line, ";"});
             } else if (ch == '[') {
-                State::instance().addToken(Token{Symbol::LBRACK, col, line, "["});
+                STATE.addToken(Token{Symbol::LBRACK, col, line, "["});
             } else if (ch == ']') {
-                State::instance().addToken(Token{Symbol::RBRACK, col, line, "]"});
+                STATE.addToken(Token{Symbol::RBRACK, col, line, "]"});
             } else if (ch == '&') {
-                State::instance().addToken(Token{Symbol::AMP, col, line, "&"});
+                STATE.addToken(Token{Symbol::AMP, col, line, "&"});
             } else if (ch == '/') {
                 ch = fs.get();
                 if (ch == '/') {
@@ -70,38 +70,38 @@ void Tokeniser::tokenise() {
                     }
                     fs.unget();
                 } else {
-                    State::instance().addToken(Token{Symbol::SLASH, col, line, "/"});
+                    STATE.addToken(Token{Symbol::SLASH, col, line, "/"});
                     fs.unget();
                 }
             } else if (ch == '=') {
                 ch = fs.get();
                 if (ch == '=') {
-                    State::instance().addToken(Token{Symbol::EQ, col, line, "=="});
+                    STATE.addToken(Token{Symbol::EQ, col, line, "=="});
                 } else {
-                    State::instance().addToken(Token{Symbol::BECOMES, col, line, "="});
+                    STATE.addToken(Token{Symbol::BECOMES, col, line, "="});
                     fs.unget();
                 }
             } else if (ch == '!') {
                 ch = fs.get();
                 if (ch == '=') {
-                    State::instance().addToken(Token{Symbol::NE, col, line, "!="});
+                    STATE.addToken(Token{Symbol::NE, col, line, "!="});
                 } else {
                     throw std::logic_error("Invalid token"); // FIXME: More descriptive error message
                 }
             } else if (ch == '<') {
                 ch = fs.get();
                 if (ch == '=') {
-                    State::instance().addToken(Token{Symbol::LE, col, line, "<="});
+                    STATE.addToken(Token{Symbol::LE, col, line, "<="});
                 } else {
-                    State::instance().addToken(Token{Symbol::LT, col, line, "<"});
+                    STATE.addToken(Token{Symbol::LT, col, line, "<"});
                     fs.unget();
                 }
             } else if (ch == '>') {
                 ch = fs.get();
                 if (ch == '=') {
-                    State::instance().addToken(Token{Symbol::GE, col, line, ">="});
+                    STATE.addToken(Token{Symbol::GE, col, line, ">="});
                 } else {
-                    State::instance().addToken(Token{Symbol::GT, col, line, ">"});
+                    STATE.addToken(Token{Symbol::GT, col, line, ">"});
                     fs.unget();
                 }
             } else if (isalpha(ch)) {
@@ -113,27 +113,27 @@ void Tokeniser::tokenise() {
                 }
                 fs.unget();
                 if (constructedToken == "return") {
-                    State::instance().addToken(Token{Symbol::RETURN, col, line, constructedToken});
+                    STATE.addToken(Token{Symbol::RETURN, col, line, constructedToken});
                 } else if (constructedToken == "if") {
-                    State::instance().addToken(Token{Symbol::IF, col, line, constructedToken});
+                    STATE.addToken(Token{Symbol::IF, col, line, constructedToken});
                 } else if (constructedToken == "else") {
-                    State::instance().addToken(Token{Symbol::ELSE, col, line, constructedToken});
+                    STATE.addToken(Token{Symbol::ELSE, col, line, constructedToken});
                 } else if (constructedToken == "while") {
-                    State::instance().addToken(Token{Symbol::WHILE, col, line, constructedToken});
+                    STATE.addToken(Token{Symbol::WHILE, col, line, constructedToken});
                 } else if (constructedToken == "println") {
-                    State::instance().addToken(Token{Symbol::PRINTLN, col, line, constructedToken});
+                    STATE.addToken(Token{Symbol::PRINTLN, col, line, constructedToken});
                 } else if (constructedToken == "wain") {
-                    State::instance().addToken(Token{Symbol::WAIN, col, line, constructedToken});
+                    STATE.addToken(Token{Symbol::WAIN, col, line, constructedToken});
                 } else if (constructedToken == "int") {
-                    State::instance().addToken(Token{Symbol::INT, col, line, constructedToken});
+                    STATE.addToken(Token{Symbol::INT, col, line, constructedToken});
                 } else if (constructedToken == "new") {
-                    State::instance().addToken(Token{Symbol::NEW, col, line, constructedToken});
+                    STATE.addToken(Token{Symbol::NEW, col, line, constructedToken});
                 } else if (constructedToken == "delete") {
-                    State::instance().addToken(Token{Symbol::DELETE, col, line, constructedToken});
+                    STATE.addToken(Token{Symbol::DELETE, col, line, constructedToken});
                 } else if (constructedToken == "NULL") {
-                    State::instance().addToken(Token{Symbol::NULL_S, col, line, constructedToken});
+                    STATE.addToken(Token{Symbol::NULL_S, col, line, constructedToken});
                 } else {
-                    State::instance().addToken(Token{Symbol::ID, col, line, constructedToken});
+                    STATE.addToken(Token{Symbol::ID, col, line, constructedToken});
                 }
                 col += constructedToken.length();
                 constructedToken.clear();
@@ -152,7 +152,7 @@ void Tokeniser::tokenise() {
                     throw std::logic_error("Number value exceeds the maximum allowed limit");
                 }
                 col += constructedToken.length();
-                State::instance().addToken(Token{Symbol::NUM, col, line, constructedToken});
+                STATE.addToken(Token{Symbol::NUM, col, line, constructedToken});
 
                 constructedToken.clear();
             } else {
@@ -162,7 +162,7 @@ void Tokeniser::tokenise() {
             col++;
         }
     } else {
-        throw std::runtime_error("Could not open source file: "s + State::instance().inputFilePath());
+        throw std::runtime_error("Could not open source file: "s + STATE.inputFilePath());
     }
 }
 

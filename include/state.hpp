@@ -78,6 +78,8 @@ private:
     std::map<std::string, std::map<std::string, ast::DclType>> _dclsMap;
 };
 
+extern State& STATE;
+
 } // namespace wlp4
 
 #endif // __WLP4_LLVM_STATE

@@ -87,14 +87,14 @@ void dumpObjectFile() {
     auto FileType = llvm::TargetMachine::CGFT_ObjectFile;
 #endif
 
-    if (State::instance().TargetMachine->addPassesToEmitFile(pass, dest, nullptr, FileType)) {
+    if (STATE.TargetMachine->addPassesToEmitFile(pass, dest, nullptr, FileType)) {
         throw std::runtime_error("TargetMachine can't emit a file of this type"s);
     }
 #ifdef DEBUG
-    llvm::errs() << *(State::instance().TheModule);
+    llvm::errs() << *(STATE.TheModule);
 #endif
 
-    pass.run(*(State::instance().TheModule));
+    pass.run(*(STATE.TheModule));
     dest.flush();
 }
 
@@ -214,6 +214,8 @@ State& State::instance() {
     return state;
 }
 
+State& STATE = State::instance();
+
 void State::setInputFilePath(const char* name) {
     _inFile = name;
 }
@@ -264,12 +266,6 @@ void State::addToFinalChart(std::unique_ptr<Elem> elem) {
     if (rule.first == Symbol::type && rule.second.size() == 2) {
         // elem has the rule: type -> INT STAR
         // This means that we must have already added another elem with rule: type -> INT previously
-        // We should get rid of this for sanity in the next steps
-        _chart.pop_back();
-    } else if (rule.first == Symbol::factor && rule.second.size() == 4) {
-        // elem has the rule: type -> ID LPAREN arglist RPAREN
-        // This means that we must have already added another elem with
-        // rule: factor -> ID LPAREN arglist RPAREN previously
         // We should get rid of this for sanity in the next steps
         _chart.pop_back();
     }

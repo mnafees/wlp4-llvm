@@ -22,6 +22,7 @@ public:
     void addParam(DclPtr dcl);
     void addDeclaration(DclPtr dcl);
     void addStatement(StatementPtr stmt);
+    const ExprPtr& returnExpr() const;
     void setReturnExpr(ExprPtr expr);
     const std::vector<DclPtr>& params() const;
 

@@ -26,9 +26,9 @@ void Recogniser::recognise() {
     addToChart(0, 0, 0, 0);
 #endif
 
-    for (std::size_t i = 0; i < State::instance().numTokens(); ++i) {
+    for (std::size_t i = 0; i < STATE.numTokens(); ++i) {
         if (i > _chart.size() - 1) {
-            throw std::runtime_error("Invalid token " + State::instance().getToken(i - 1).value);
+            throw std::runtime_error("Invalid token " + STATE.getToken(i - 1).value);
         }
 
         for (std::size_t j = 0; j < _chart[i].size(); ++j) {
@@ -51,7 +51,7 @@ void Recogniser::recognise() {
             } else {
                 const auto nextSym = el->nextSymbol();
                 if (isTerminal(nextSym)) {
-                    scanner(State::instance().getToken(i).type, i);
+                    scanner(STATE.getToken(i).type, i);
                 } else {
                     predictor(nextSym, i, j);
                 }
@@ -59,7 +59,7 @@ void Recogniser::recognise() {
         }
     }
 
-    if (_chart.size() - 1 == State::instance().numTokens()) {
+    if (_chart.size() - 1 == STATE.numTokens()) {
         populateFinalChart();
     } else {
         throw std::runtime_error("Invalid WLP4 code");
@@ -217,7 +217,7 @@ void Recogniser::populateFinalChart() {
                           << "  op: " << el->op << '\n'
                           << "}" << '\n';
 #endif
-                State::instance().addToFinalChart(std::move(el));
+                STATE.addToFinalChart(std::move(el));
             }
         }
     }

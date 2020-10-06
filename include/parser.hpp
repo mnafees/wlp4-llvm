@@ -27,6 +27,7 @@ private:
     TestPtr parseTest();
     std::optional<Symbol> parseDcls();
     DclPtr parseDcl(Symbol *sym = nullptr);
+    bool parseParams();
 
     long _elemIdx;
     std::string _currProcedureName;
