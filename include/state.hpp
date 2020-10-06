@@ -39,10 +39,16 @@ public:
     static State& instance();
 
     void initLLVMCodegen();
-    void dumpObjectFile();
+    void compile();
 
-    void setFilename(const char* name);
-    const std::string& filename() const;
+    void setInputFilePath(const char* name);
+    const std::string& inputFilePath() const;
+
+    void setOutputFilePath(const char* name);
+    const std::string& outputFilePath() const;
+
+    void setCompilerPath(const char* name);
+    const std::string& compilerPath() const;
 
     void addToken(Token token);
     const Token& getToken(std::size_t idx) const;
@@ -63,7 +69,9 @@ public:
     std::unique_ptr<llvm::TargetMachine> TargetMachine;
 
 private:
-    std::string _filename;
+    std::string _inFile;
+    std::string _outFile;
+    std::string _compiler;
     std::vector<Token> _tokens;
     std::vector<std::unique_ptr<Elem>> _chart;
     std::list<std::unique_ptr<ast::Procedure>> _procedures;

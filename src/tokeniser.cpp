@@ -17,7 +17,9 @@ bool isTerminal(Symbol sym) {
 }
 
 void Tokeniser::tokenise() {
-    std::ifstream fs(State::instance().filename());
+    using namespace std::string_literals;
+
+    std::ifstream fs(State::instance().inputFilePath());
     if (fs.is_open()) {
         unsigned char ch = fs.get();
         std::string constructedToken;
@@ -160,7 +162,7 @@ void Tokeniser::tokenise() {
             col++;
         }
     } else {
-        throw std::runtime_error("Could not open source file: " + State::instance().filename());
+        throw std::runtime_error("Could not open source file: "s + State::instance().inputFilePath());
     }
 }
 

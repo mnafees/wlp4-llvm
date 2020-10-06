@@ -1,13 +1,19 @@
 // Self
 #include "state.hpp"
 
-#ifdef DEBUG
 // STL
+// #ifdef DEBUG
 #include <iostream>
-#endif
+// #endif
+#include <fstream>
+#include <filesystem>
+#include <cstdio>
 
 // WLP4-LLVM
 #include "token.hpp"
+#include "ast/type.hpp"
+#include "ast/dcl.hpp"
+#include "embedded_wain.hpp"
 
 // LLVM
 #include "llvm/IR/IRBuilder.h"
@@ -24,6 +30,9 @@
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Config/llvm-config.h"
 
+using namespace std::string_literals;
+namespace fs = std::filesystem;
+
 namespace wlp4 {
 
 void State::initLLVMCodegen() {
@@ -32,8 +41,8 @@ void State::initLLVMCodegen() {
 
     Builder = std::make_unique<llvm::IRBuilder<>>(TheContext);
     auto TargetTriple = llvm::sys::getDefaultTargetTriple();
-    TheModule = std::make_unique<llvm::Module>(State::instance().filename(), TheContext);
-    TheModule->setSourceFileName(State::instance().filename());
+    TheModule = std::make_unique<llvm::Module>(inputFilePath(), TheContext);
+    TheModule->setSourceFileName(inputFilePath());
     std::string Error;
     auto Target = llvm::TargetRegistry::lookupTarget(TargetTriple, Error);
     if (!Target) {
@@ -64,13 +73,9 @@ void State::initLLVMCodegen() {
     freeFunc->setDSOLocal(true);
 }
 
-void State::dumpObjectFile() {
-    using namespace std::string_literals;
-
-    auto Filename = State::instance().filename() + ".o"s;
+void dumpObjectFile() {
     std::error_code EC;
-    llvm::raw_fd_ostream dest(Filename, EC, llvm::sys::fs::OF_None);
-
+    llvm::raw_fd_ostream dest("prog.o", EC, llvm::sys::fs::OF_None);
     if (EC) {
         throw std::runtime_error("Could not open file: "s + EC.message());
     }
@@ -82,13 +87,41 @@ void State::dumpObjectFile() {
     auto FileType = llvm::TargetMachine::CGFT_ObjectFile;
 #endif
 
-    if (TargetMachine->addPassesToEmitFile(pass, dest, nullptr, FileType)) {
+    if (State::instance().TargetMachine->addPassesToEmitFile(pass, dest, nullptr, FileType)) {
         throw std::runtime_error("TargetMachine can't emit a file of this type"s);
     }
-    llvm::errs() << *TheModule;
+#ifdef DEBUG
+    llvm::errs() << *(State::instance().TheModule);
+#endif
 
-    pass.run(*TheModule);
+    pass.run(*(State::instance().TheModule));
     dest.flush();
+}
+
+void State::compile() {
+    // create temporary folder
+    fs::path tmpDirPath(fs::temp_directory_path());
+    tmpDirPath.append("wlp4_tmp"s);
+    if (fs::exists(tmpDirPath)) {
+        fs::remove_all(tmpDirPath);
+    }
+    if (fs::create_directory(tmpDirPath)) {
+        fs::current_path(tmpDirPath);
+        dumpObjectFile();
+        std::ofstream ofs("main.c"s);
+        if (ofs.is_open()) {
+            if (_procedures.back()->params().at(0)->type() == ast::DclType::INT) {
+                ofs << intWain;
+            } else {
+                ofs << arrayWain;
+            }
+            ofs.close();
+            const auto compileCmd = _compiler + " main.c prog.o -o "s + _outFile;
+            std::system(compileCmd.c_str());
+        }
+    } else {
+        throw std::runtime_error("internal compiler error");
+    }
 }
 
 std::vector<std::pair<Symbol, std::vector<Symbol>>> CFG;
@@ -172,6 +205,8 @@ State::State()  {
     };
     symToStr = std::move(symToStrCopy);
 #endif
+
+    _outFile = fs::current_path().append("a.out").string();
 }
 
 State& State::instance() {
@@ -179,12 +214,37 @@ State& State::instance() {
     return state;
 }
 
-void State::setFilename(const char* name) {
-    _filename = name;
+void State::setInputFilePath(const char* name) {
+    _inFile = name;
 }
 
-const std::string& State::filename() const {
-    return _filename;
+const std::string& State::inputFilePath() const {
+    return _inFile;
+}
+
+void State::setOutputFilePath(const char* name) {
+    if (std::strcmp(name, "") != 0) {
+        if (fs::path(name).is_absolute()) {
+            _outFile = name;
+        } else {
+            _outFile = fs::current_path().append(name).string();
+        }
+    }
+}
+
+const std::string& State::outputFilePath() const {
+    return _outFile;
+}
+
+void State::setCompilerPath(const char* name) {
+    if (std::strcmp(name, "") == 0) {
+        throw std::runtime_error("invalid compiler");
+    }
+    _compiler = name;
+}
+
+const std::string& State::compilerPath() const {
+    return _compiler;
 }
 
 void State::addToken(Token token) {

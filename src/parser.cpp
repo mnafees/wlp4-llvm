@@ -375,9 +375,7 @@ DclPtr Parser::parseDcl(Symbol *sym) {
         dcl->setType(ast::DclType::INT_STAR);
     }
     --_elemIdx;
-    if (sym) {
-        state.addDclToProc(_currProcedureName, dcl->id(), dcl->type());
-    }
+    state.addDclToProc(_currProcedureName, dcl->id(), dcl->type()); // FIXME: being called twice
 
     return std::move(dcl);
 }
