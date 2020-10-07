@@ -1,0 +1,8 @@
+int wain(int* a, int l) {
+    int c = 0;
+    while (c < l) {
+        println(*(a + c));
+        c = c + 1;
+    }
+    return 0;
+}

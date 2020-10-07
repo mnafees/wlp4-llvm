@@ -1,0 +1,17 @@
+int wain(int a, int b) {
+    int* c = NULL;
+    int d = 10;
+    int e = 0;
+    c = new int[d];
+    while (e < d) {
+        *(c + e) = e + 1;
+        e = e + 1;
+    }
+    e = 0;
+    while (e < d) {
+        println(*(c + e));
+        e = e + 1;
+    }
+    delete[] c;
+    return 0;
+}

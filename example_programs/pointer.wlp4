@@ -1,0 +1,9 @@
+// Thanks to Professor Nomair Naeem of UWaterloo CS for this
+int wain(int a, int b) {
+    int* c = NULL;
+    int* d = NULL;
+    c = new int[1];
+    d = c + 1;
+    delete[] d-1;
+    return 0;
+}

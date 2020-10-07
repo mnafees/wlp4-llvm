@@ -1,0 +1,5 @@
+int wain(int a, int b) {
+    println(a);
+    println(b);
+    return 0;
+}
