@@ -24,7 +24,7 @@ This will produce the binary `wlp4c`
 ## Usage
 
 ```
-$ wlp4c <file>
+$ wlp4c <input file> --compiler=/path/to/C_compiler -o <output file>
 ```
 
 ## License
