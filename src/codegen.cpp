@@ -63,6 +63,7 @@ llvm::Value* Procedure::codegen() {
     }
     for (const auto& dcl : _dcls) {
         auto dclCodegen = dcl->codegen();
+        dclCodegen->setName(dcl->id());
         dclSymbolTable[_name][dcl->id()] = dclCodegen;
     }
     for (auto& arg : func->args()) {

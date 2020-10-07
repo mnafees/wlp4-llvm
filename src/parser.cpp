@@ -35,6 +35,8 @@ using namespace std::string_literals;
     FETCH_RULE_RHS;
 #define PARSE_END }
 
+std::map<std::string, unsigned int> procedureArgsNum;
+
 namespace wlp4 {
 
 void Parser::parse() {
@@ -48,20 +50,23 @@ void Parser::parse() {
             const auto nameIdx = STATE.finalChart().at(_elemIdx)->startIdx() + 1;
             _currProcedureName = STATE.getToken(nameIdx).value;
             --_elemIdx;
+            if (procedureArgsNum.find(_currProcedureName) != procedureArgsNum.end()) {
+                throw std::runtime_error("procedure named '"s + _currProcedureName + "' redeclared"s);
+            }
+            procedureArgsNum[_currProcedureName] = 0;
+            if (_currProcedureName == "wain") {
+                procedureArgsNum[_currProcedureName] = 2;
+            }
         } else if (lhs == Symbol::dcls) {
-            for (;;) {
-                if (auto opt = parseDcls(); opt.has_value()) {
-                    auto dcl = parseDcl();
+            for (auto opt = parseDcls(); opt.has_value(); opt = parseDcls()) {
+                auto dcl = parseDcl();
 #ifdef DEBUG
-                    if (dcl->type() == ast::DclType::INT) {
-                        std::cout << _currProcedureName << " has declaration '" << dcl->id() << "' of type INT\n";
-                    } else if (dcl->type() == ast::DclType::INT_STAR) {
-                        std::cout << _currProcedureName << " has declaration '" << dcl->id() << "' of type INT_STAR\n";
-                    }
-#endif
-                } else {
-                    break;
+                if (dcl->type() == ast::DclType::INT) {
+                    std::cout << _currProcedureName << " has declaration '" << dcl->id() << "' of type INT\n";
+                } else if (dcl->type() == ast::DclType::INT_STAR) {
+                    std::cout << _currProcedureName << " has declaration '" << dcl->id() << "' of type INT_STAR\n";
                 }
+#endif
             }
         } else if (lhs == Symbol::dcl && _currProcedureName == "wain") {
             auto dcl2 = parseDcl();
@@ -79,6 +84,7 @@ void Parser::parse() {
                     std::cout << _currProcedureName << " has declaration '" << dcl->id() << "' of type INT_STAR\n";
                 }
 #endif
+                procedureArgsNum[_currProcedureName] += 1;
             }
         } else {
             --_elemIdx;
@@ -109,8 +115,7 @@ void Parser::parse() {
                 proc->addStatement(parseStatement());
             }
         } else if (lhs == Symbol::dcls) {
-            auto opt = parseDcls();
-            for (; opt.has_value(); opt = parseDcls()) {
+            for (auto opt = parseDcls(); opt.has_value(); opt = parseDcls()) {
                 auto dcl = parseDcl(&opt.value());
 #ifdef DEBUG
                 std::cout << "Value of dcl '" << dcl->id() << "' is '" << dcl->value() << "'\n";
@@ -190,16 +195,29 @@ PARSE_BEGIN(Factor, Symbol::factor)
     FactorPtr factor(new ast::Factor(_currProcedureName));
     if (rhs.size() > 1) {
         if (rhs[0] == Symbol::ID) {
+            const auto& procName = STATE.getToken(STATE.finalChart().at(_elemIdx)->startIdx()).value;
+            if (procedureArgsNum.find(procName) == procedureArgsNum.end()) {
+                throw std::runtime_error("no such procedure named '"s + procName + "'"s);
+            } else if (_currProcedureName == "wain" && procName == "wain") {
+                throw std::runtime_error("wain may not call itself");
+            }
+            --_elemIdx;
             if (rhs.size() == 3) {
                 // factor -> ID LPAREN RPAREN
-                factor->setProcedureCall(STATE.getToken(
-                    STATE.finalChart()[_elemIdx]->startIdx()).value);
-                --_elemIdx;
+                if (procedureArgsNum[procName] != 0) {
+                    throw std::runtime_error("procedure '"s + procName + "' takes "s +
+                        std::to_string(procedureArgsNum[procName]) + " arguments, zero provided"s);
+                }
+                factor->setProcedureCall(procName);
             } else {
-                // FIXME: Really bad design here!
-                const auto& procName = STATE.getToken(STATE.finalChart()[_elemIdx]->startIdx()).value;
-                --_elemIdx;
-                factor->setValue(parseArglist());
+                // factor -> ID LPAREN arglist RPAREN
+                auto arglist = parseArglist();
+                if (arglist->numArgs() != procedureArgsNum[procName]) {
+                    throw std::runtime_error("procedure '"s + procName + "' takes "s +
+                        std::to_string(procedureArgsNum[procName]) + " arguments, "s +
+                        std::to_string(arglist->numArgs()) + " provided"s);
+                }
+                factor->setValue(std::move(arglist));
                 factor->setProcedureCall(procName);
             }
         } else {

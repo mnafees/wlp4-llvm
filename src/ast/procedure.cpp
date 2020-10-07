@@ -28,6 +28,10 @@ void Procedure::addParam(DclPtr dcl) {
     _params.push_back(std::move(dcl));
 }
 
+std::size_t Procedure::numParams() const {
+    return _params.size();
+}
+
 void Procedure::addDeclaration(DclPtr dcl) {
     validateName(dcl->id());
     _dcls.push_back(std::move(dcl));

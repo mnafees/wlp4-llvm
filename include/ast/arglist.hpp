@@ -17,6 +17,7 @@ public:
     ~Arglist();
 
     void setExpr(ExprPtr expr);
+    std::size_t numArgs() const;
 
     std::vector<llvm::Value*> codegen();
 

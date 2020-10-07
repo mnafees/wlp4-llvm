@@ -20,6 +20,7 @@ public:
     bool isWain() const;
     const std::string& name() const;
     void addParam(DclPtr dcl);
+    std::size_t numParams() const;
     void addDeclaration(DclPtr dcl);
     void addStatement(StatementPtr stmt);
     const ExprPtr& returnExpr() const;

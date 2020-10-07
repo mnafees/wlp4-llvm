@@ -51,8 +51,8 @@ void State::initLLVMCodegen() {
     auto CPU = "generic";
     auto Features = "";
     llvm::TargetOptions opt;
-    auto RM = llvm::Optional<llvm::Reloc::Model>();
-    TargetMachine = std::unique_ptr<llvm::TargetMachine>(Target->createTargetMachine(TargetTriple, CPU, Features, opt, RM));
+    TargetMachine = std::unique_ptr<llvm::TargetMachine>(Target->createTargetMachine(
+        TargetTriple, CPU, Features, opt, llvm::Reloc::PIC_));
     TheModule->setDataLayout(TargetMachine->createDataLayout());
     TheModule->setTargetTriple(TargetTriple);
 

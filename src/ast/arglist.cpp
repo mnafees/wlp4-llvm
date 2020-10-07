@@ -20,4 +20,8 @@ void Arglist::setExpr(ExprPtr expr) {
     _expr = std::move(expr);
 }
 
+std::size_t Arglist::numArgs() const {
+    return 1 + (_arglist ? _arglist->numArgs() : 0);
+}
+
 } // namespace wlp4::ast
