@@ -35,7 +35,9 @@ using namespace std::string_literals;
     FETCH_RULE_RHS;
 #define PARSE_END }
 
+// FIXME: won't need this once we create the procedure while populating dclsMap in State
 std::map<std::string, unsigned int> procedureArgsNum;
+std::list<std::string> procedureNames;
 
 namespace wlp4 {
 
@@ -49,9 +51,10 @@ void Parser::parse() {
         if (lhs == Symbol::procedure || lhs == Symbol::main_s) {
             const auto nameIdx = STATE.finalChart().at(_elemIdx)->startIdx() + 1;
             _currProcedureName = STATE.getToken(nameIdx).value;
+            procedureNames.push_front(_currProcedureName);
             --_elemIdx;
             if (procedureArgsNum.find(_currProcedureName) != procedureArgsNum.end()) {
-                throw std::runtime_error("procedure named '"s + _currProcedureName + "' redeclared"s);
+                throw std::runtime_error("procedure '"s + _currProcedureName + "' redeclared"s);
             }
             procedureArgsNum[_currProcedureName] = 0;
             if (_currProcedureName == "wain") {
@@ -191,16 +194,32 @@ PARSE_BEGIN(Term, Symbol::term)
     return term;
 PARSE_END
 
+void checkValidCall(const std::string& caller, const std::string& callee) {
+    if (procedureArgsNum.find(callee) == procedureArgsNum.end()) {
+        throw std::runtime_error("no such procedure named '"s + callee + "'"s);
+    } else if (caller == "wain" && callee == "wain") {
+        throw std::runtime_error("wain may not call itself");
+    }
+    bool declaredBefore = false;
+    for (const auto& name : procedureNames) {
+        if (name == callee) {
+            declaredBefore = true;
+        } else if (name == caller) {
+            break;
+        }
+    }
+    if (!declaredBefore) {
+        throw std::runtime_error("invalid call to procedure '"s + callee + "' from procedure '"s +
+            caller + "' since it is declared after it");
+    }
+}
+
 PARSE_BEGIN(Factor, Symbol::factor)
     FactorPtr factor(new ast::Factor(_currProcedureName));
     if (rhs.size() > 1) {
         if (rhs[0] == Symbol::ID) {
             const auto& procName = STATE.getToken(STATE.finalChart().at(_elemIdx)->startIdx()).value;
-            if (procedureArgsNum.find(procName) == procedureArgsNum.end()) {
-                throw std::runtime_error("no such procedure named '"s + procName + "'"s);
-            } else if (_currProcedureName == "wain" && procName == "wain") {
-                throw std::runtime_error("wain may not call itself");
-            }
+            checkValidCall(_currProcedureName, procName);
             --_elemIdx;
             if (rhs.size() == 3) {
                 // factor -> ID LPAREN RPAREN
