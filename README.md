@@ -1,6 +1,8 @@
 # WLP4-LLVM - LLVM frontend for WLP4
 
 [![Build Status](https://travis-ci.org/mnafees/wlp4-llvm.svg?branch=main)](https://travis-ci.org/mnafees/wlp4-llvm)
+[![License](https://img.shields.io/github/license/mnafees/wlp4-llvm)](https://github.com/mnafees/wlp4-llvm/blob/main/LICENSE)
+![Code size](https://img.shields.io/github/languages/code-size/mnafees/wlp4-llvm)
 
 WLP4 (pronounced "Wool P Four") stands for Waterloo Language Plus Pointers Plus Procedures. It is a subset of C++ that is taught in the ["Foundations of Sequential Programs"](https://www.student.cs.uwaterloo.ca/~cs241) course at the University of Waterloo.
 
