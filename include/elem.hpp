@@ -1,8 +1,9 @@
+#pragma once
 #ifndef __WLP4_LLVM_ELEM
 #define __WLP4_LLVM_ELEM
 
 // STL
-#include <string>
+#include <cstddef>
 
 // WLP4-LLVM
 #include "symbol.hpp"
@@ -19,10 +20,6 @@ public:
 
     Symbol nextSymbol() const;
     bool isComplete() const;
-
-#ifdef DEBUG
-    std::string op;
-#endif
 
 private:
     std::size_t _ruleIdx; // The index of the CFG rule for this element

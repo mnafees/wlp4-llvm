@@ -14,9 +14,6 @@ message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-#set(CMAKE_CXX_CLANG_TIDY clang-tidy -checks=-*,readability-*,-header-filter=*)
-
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG")
 if (NOT ${LLVM_ENABLE_RTTI})
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
 endif()
@@ -27,7 +24,11 @@ add_definitions(${LLVM_DEFINITIONS})
 
 llvm_map_components_to_libnames(llvm_libs support core native asmprinter)
 
+add_subdirectory(third_party/fmt-7.0.3 EXCLUDE_FROM_ALL)
+
+include_directories(third_party/fmt-7.0.3/include)
 include_directories(include)
+
 set(WLP4C_SRCS
     wlp4c.cpp
     src/state.cpp
@@ -49,4 +50,4 @@ set(WLP4C_SRCS
 )
 
 add_executable(wlp4c ${WLP4C_SRCS})
-target_link_libraries(wlp4c ${llvm_libs})
+target_link_libraries(wlp4c ${llvm_libs} fmt::fmt)

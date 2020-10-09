@@ -2,9 +2,6 @@
 #include "state.hpp"
 
 // STL
-// #ifdef DEBUG
-#include <iostream>
-// #endif
 #include <fstream>
 #include <filesystem>
 #include <cstdio>
@@ -35,99 +32,7 @@ namespace fs = std::filesystem;
 
 namespace wlp4 {
 
-void State::initLLVMCodegen() {
-    llvm::InitializeNativeTarget();
-    llvm::InitializeNativeTargetAsmPrinter();
-
-    Builder = std::make_unique<llvm::IRBuilder<>>(TheContext);
-    auto TargetTriple = llvm::sys::getDefaultTargetTriple();
-    TheModule = std::make_unique<llvm::Module>(inputFilePath(), TheContext);
-    TheModule->setSourceFileName(inputFilePath());
-    std::string Error;
-    auto Target = llvm::TargetRegistry::lookupTarget(TargetTriple, Error);
-    if (!Target) {
-        throw std::runtime_error(Error);
-    }
-    auto CPU = "generic";
-    auto Features = "";
-    llvm::TargetOptions opt;
-    TargetMachine = std::unique_ptr<llvm::TargetMachine>(Target->createTargetMachine(
-        TargetTriple, CPU, Features, opt, llvm::Reloc::PIC_));
-    TheModule->setDataLayout(TargetMachine->createDataLayout());
-    TheModule->setTargetTriple(TargetTriple);
-
-    // printf
-    auto printfType = llvm::FunctionType::get(Builder->getInt32Ty(), {llvm::Type::getInt8PtrTy(TheContext)}, true);
-    auto printfFunc = llvm::Function::Create(printfType, llvm::Function::ExternalLinkage, "printf", TheModule.get());
-    printfFunc->setDSOLocal(true);
-
-    // malloc
-    auto mallocType = llvm::FunctionType::get(Builder->getInt8PtrTy(), {llvm::Type::getInt32Ty(TheContext)}, false);
-    auto mallocFunc = llvm::Function::Create(mallocType, llvm::Function::ExternalLinkage, "malloc", TheModule.get());
-    mallocFunc->addAttribute(0, llvm::Attribute::NoAlias);
-    mallocFunc->setDSOLocal(true);
-
-    // free
-    auto freeType = llvm::FunctionType::get(Builder->getVoidTy(), {llvm::Type::getInt8PtrTy(TheContext)}, false);
-    auto freeFunc = llvm::Function::Create(freeType, llvm::Function::ExternalLinkage, "free", TheModule.get());
-    freeFunc->setDSOLocal(true);
-}
-
-void dumpObjectFile() {
-    std::error_code EC;
-    llvm::raw_fd_ostream dest("prog.o", EC, llvm::sys::fs::OF_None);
-    if (EC) {
-        throw std::runtime_error("Could not open file: "s + EC.message());
-    }
-
-    llvm::legacy::PassManager pass;
-#if LLVM_VERSION_MAJOR >= 10
-    auto FileType = llvm::CodeGenFileType::CGFT_ObjectFile;
-#else
-    auto FileType = llvm::TargetMachine::CGFT_ObjectFile;
-#endif
-
-    if (STATE.TargetMachine->addPassesToEmitFile(pass, dest, nullptr, FileType)) {
-        throw std::runtime_error("TargetMachine can't emit a file of this type"s);
-    }
-#ifdef DEBUG
-    llvm::errs() << *(STATE.TheModule);
-#endif
-
-    pass.run(*(STATE.TheModule));
-    dest.flush();
-}
-
-void State::compile() {
-    // create temporary folder
-    fs::path tmpDirPath(fs::temp_directory_path());
-    tmpDirPath.append("wlp4_tmp"s);
-    if (fs::exists(tmpDirPath)) {
-        fs::remove_all(tmpDirPath);
-    }
-    if (fs::create_directory(tmpDirPath)) {
-        fs::current_path(tmpDirPath);
-        dumpObjectFile();
-        std::ofstream ofs("main.c"s);
-        if (ofs.is_open()) {
-            if (_procedures.back()->params().at(0)->type() == ast::DclType::INT) {
-                ofs << intWain;
-            } else {
-                ofs << arrayWain;
-            }
-            ofs.close();
-            const auto compileCmd = _compiler + " main.c prog.o -o "s + _outFile;
-            std::system(compileCmd.c_str());
-        }
-    } else {
-        throw std::runtime_error("internal compiler error");
-    }
-}
-
 std::vector<std::pair<Symbol, std::vector<Symbol>>> CFG;
-#ifdef DEBUG
-std::map<Symbol, std::string> symToStr;
-#endif
 
 State::State()  {
     CFG.push_back({ Symbol::start, { Symbol::procedures } });
@@ -187,25 +92,6 @@ State::State()  {
     CFG.push_back({ Symbol::lvalue, { Symbol::STAR, Symbol::factor } });
     CFG.push_back({ Symbol::lvalue, { Symbol::LPAREN, Symbol::lvalue, Symbol::RPAREN } });
 
-#ifdef DEBUG
-    std::map<Symbol, std::string> symToStrCopy = {
-        { Symbol::ID, "ID" }, { Symbol::NUM, "NUM" }, { Symbol::LPAREN, "LPAREN" }, { Symbol::RPAREN, "RPAREN" },
-        { Symbol::LBRACE, "LBRACE" }, { Symbol::RBRACE, "RBRACE" }, { Symbol::RETURN, "RETURN" }, { Symbol::IF, "IF" },
-        { Symbol::ELSE, "ELSE" }, { Symbol::WHILE, "WHILE" }, { Symbol::PRINTLN, "PRINTLN" }, { Symbol::WAIN, "WAIN" },
-        { Symbol::BECOMES, "BECOMES" }, { Symbol::INT, "INT" }, { Symbol::EQ, "EQ" }, { Symbol::NE, "NE" },
-        { Symbol::LT, "LT" }, { Symbol::GT, "GT" }, { Symbol::LE, "LE" }, { Symbol::GE, "GE" }, { Symbol::PLUS, "PLUS" },
-        { Symbol::MINUS, "MINUS" }, { Symbol::STAR, "STAR" }, { Symbol::SLASH, "SLASH" }, { Symbol::PCT, "PCT" },
-        { Symbol::COMMA, "COMMA" }, { Symbol::SEMI, "SEMI" }, { Symbol::NEW, "NEW" }, { Symbol::DELETE, "DELETE" },
-        { Symbol::LBRACK, "LBRACK" }, { Symbol::RBRACK, "RBRACK" }, { Symbol::AMP, "AMP" }, { Symbol::NULL_S, "NULL" },
-        { Symbol::procedures, "procedures" }, { Symbol::procedure, "procedure" }, { Symbol::main_s, "main" },
-        { Symbol::params, "params" }, { Symbol::paramlist, "paramlist" }, { Symbol::type, "type" }, { Symbol::dcl, "dcl" },
-        { Symbol::dcls, "dcls" }, { Symbol::statements, "statements" }, { Symbol::lvalue, "lvalue" }, { Symbol::expr, "expr" },
-        { Symbol::test, "test" }, { Symbol::statement, "statement" }, { Symbol::term, "term" }, { Symbol::factor, "factor" },
-        { Symbol::start, "start" }, { Symbol::arglist, "arglist" }
-    };
-    symToStr = std::move(symToStrCopy);
-#endif
-
     _outFile = fs::current_path().append("a.out").string();
 }
 
@@ -215,6 +101,92 @@ State& State::instance() {
 }
 
 State& STATE = State::instance();
+
+void State::initLLVMCodegen() {
+    llvm::InitializeNativeTarget();
+    llvm::InitializeNativeTargetAsmPrinter();
+
+    Builder = std::make_unique<llvm::IRBuilder<>>(TheContext);
+    auto TargetTriple = llvm::sys::getDefaultTargetTriple();
+    TheModule = std::make_unique<llvm::Module>(inputFilePath(), TheContext);
+    TheModule->setSourceFileName(inputFilePath());
+    std::string Error;
+    auto Target = llvm::TargetRegistry::lookupTarget(TargetTriple, Error);
+    if (!Target) {
+        throw std::runtime_error(Error);
+    }
+    auto CPU = "generic";
+    auto Features = "";
+    llvm::TargetOptions opt;
+    TargetMachine = std::unique_ptr<llvm::TargetMachine>(Target->createTargetMachine(
+        TargetTriple, CPU, Features, opt, llvm::Reloc::PIC_));
+    TheModule->setDataLayout(TargetMachine->createDataLayout());
+    TheModule->setTargetTriple(TargetTriple);
+
+    // printf
+    auto printfType = llvm::FunctionType::get(Builder->getInt32Ty(), {llvm::Type::getInt8PtrTy(TheContext)}, true);
+    auto printfFunc = llvm::Function::Create(printfType, llvm::Function::ExternalLinkage, "printf", TheModule.get());
+    printfFunc->setDSOLocal(true);
+
+    // malloc
+    auto mallocType = llvm::FunctionType::get(Builder->getInt8PtrTy(), {llvm::Type::getInt32Ty(TheContext)}, false);
+    auto mallocFunc = llvm::Function::Create(mallocType, llvm::Function::ExternalLinkage, "malloc", TheModule.get());
+    mallocFunc->addAttribute(0, llvm::Attribute::NoAlias);
+    mallocFunc->setDSOLocal(true);
+
+    // free
+    auto freeType = llvm::FunctionType::get(Builder->getVoidTy(), {llvm::Type::getInt8PtrTy(TheContext)}, false);
+    auto freeFunc = llvm::Function::Create(freeType, llvm::Function::ExternalLinkage, "free", TheModule.get());
+    freeFunc->setDSOLocal(true);
+}
+
+void dumpObjectFile() {
+    std::error_code EC;
+    llvm::raw_fd_ostream dest("prog.o", EC, llvm::sys::fs::OF_None);
+    if (EC) {
+        throw std::runtime_error("Could not open file: "s + EC.message());
+    }
+
+    llvm::legacy::PassManager pass;
+#if LLVM_VERSION_MAJOR >= 10
+    auto FileType = llvm::CodeGenFileType::CGFT_ObjectFile;
+#else
+    auto FileType = llvm::TargetMachine::CGFT_ObjectFile;
+#endif
+
+    if (STATE.TargetMachine->addPassesToEmitFile(pass, dest, nullptr, FileType)) {
+        throw std::runtime_error("TargetMachine can't emit a file of this type"s);
+    }
+
+    pass.run(*(STATE.TheModule));
+    dest.flush();
+}
+
+void State::compile() {
+    // create temporary folder
+    fs::path tmpDirPath(fs::temp_directory_path());
+    tmpDirPath.append("wlp4_tmp"s);
+    if (fs::exists(tmpDirPath)) {
+        fs::remove_all(tmpDirPath);
+    }
+    if (fs::create_directory(tmpDirPath)) {
+        fs::current_path(tmpDirPath);
+        dumpObjectFile();
+        std::ofstream ofs("main.c"s);
+        if (ofs.is_open()) {
+            if (_procedures.back()->params().at(0)->type() == ast::DclType::INT) {
+                ofs << intWain;
+            } else {
+                ofs << arrayWain;
+            }
+            ofs.close();
+            const auto compileCmd = _compiler + " main.c prog.o -o "s + _outFile;
+            std::system(compileCmd.c_str());
+        }
+    } else {
+        throw std::runtime_error("internal compiler error");
+    }
+}
 
 void State::setInputFilePath(const char* name) {
     _inFile = name;

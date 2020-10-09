@@ -1,6 +1,3 @@
-// STL
-#include <iostream>
-
 // WLP4-LLVM
 #include "ast/procedure.hpp"
 #include "ast/dcl.hpp"
@@ -27,22 +24,12 @@ auto& Builder = STATE.Builder;
 auto& TheModule = STATE.TheModule;
 
 llvm::Value* Procedure::codegen() {
-#ifdef DEBUG
-    std::cout << "Codegen for procedure " << _name << '\n';
-#endif
-
     dclSymbolTable[_name] = std::map<std::string, llvm::Value*>();
     std::vector<llvm::Type*> args;
     for (const auto& param : _params) {
         if (param->type() == DclType::INT) {
-#ifdef DEBUG
-            std::cout << _name << " has a parameter of type INT" << '\n';
-#endif
             args.push_back(Builder->getInt32Ty());
         } else if (param->type() == DclType::INT_STAR) {
-#ifdef DEBUG
-            std::cout << _name << " has a parameter of type INT STAR" << '\n';
-#endif
             args.push_back(llvm::PointerType::getInt32PtrTy(Builder->getContext()));
         }
     }
@@ -104,10 +91,6 @@ llvm::Value* Procedure::codegen() {
 }
 
 llvm::Value* Dcl::codegen() {
-#ifdef DEBUG
-    std::cout << __PRETTY_FUNCTION__ << '\n';
-#endif
-
     llvm::AllocaInst* alloca = nullptr;
     if (_type == DclType::INT) {
         alloca = Builder->CreateAlloca(Builder->getInt32Ty());
@@ -123,10 +106,6 @@ llvm::Value* Dcl::codegen() {
 }
 
 llvm::Value* IfStatement::codegen() {
-#ifdef DEBUG
-    std::cout << __PRETTY_FUNCTION__ << '\n';
-#endif
-
     auto func = Builder->GetInsertBlock()->getParent();
     auto BB = Builder->GetInsertBlock();
 
@@ -168,10 +147,6 @@ llvm::Value* IfStatement::codegen() {
 }
 
 llvm::Value* Lvalue::codegen() {
-#ifdef DEBUG
-    std::cout << __PRETTY_FUNCTION__ << '\n';
-#endif
-
     if (std::holds_alternative<std::string>(_value)) {
         // lvalue -> ID
         return dclSymbolTable[_procedureName][std::get<std::string>(_value)];
@@ -186,10 +161,6 @@ llvm::Value* Lvalue::codegen() {
 }
 
 llvm::Value* LvalueStatement::codegen() {
-#ifdef DEBUG
-    std::cout << __PRETTY_FUNCTION__ << '\n';
-#endif
-
     auto store = Builder->CreateStore(_expr->codegen(), _lvalue->codegen());
 #if LLVM_VERSION_MAJOR >= 10
         store->setAlignment(llvm::MaybeAlign(4));
@@ -200,10 +171,6 @@ llvm::Value* LvalueStatement::codegen() {
 }
 
 llvm::Value* WhileStatement::codegen() {
-#ifdef DEBUG
-    std::cout << __PRETTY_FUNCTION__ << '\n';
-#endif
-
     auto func = Builder->GetInsertBlock()->getParent();
     auto BB = Builder->GetInsertBlock();
 
@@ -230,10 +197,6 @@ llvm::Value* WhileStatement::codegen() {
 }
 
 llvm::Value* PrintlnStatement::codegen() {
-#ifdef DEBUG
-    std::cout << __PRETTY_FUNCTION__ << '\n';
-#endif
-
     auto printPhType = llvm::ArrayType::get(Builder->getInt8Ty(), 4);
     auto printPlaceholder = TheModule->getOrInsertGlobal("print_ph", printPhType,
         [=]() -> llvm::GlobalVariable* {
@@ -259,10 +222,6 @@ llvm::Value* PrintlnStatement::codegen() {
 }
 
 llvm::Value* DeleteStatement::codegen() {
-#ifdef DEBUG
-    std::cout << __PRETTY_FUNCTION__ << '\n';
-#endif
-
     auto bitcast = Builder->CreateBitCast(_expr->codegen(), Builder->getInt8PtrTy());
     Builder->CreateCall(TheModule->getFunction("free"), {bitcast});
 
@@ -270,10 +229,6 @@ llvm::Value* DeleteStatement::codegen() {
 }
 
 llvm::Value* Test::codegen() {
-#ifdef DEBUG
-    std::cout << __PRETTY_FUNCTION__ << '\n';
-#endif
-
     if (_op == Symbol::EQ) {
         return Builder->CreateICmpEQ(_leftExpr->codegen(), _rightExpr->codegen());
     } else if (_op == Symbol::NE) {
@@ -289,10 +244,6 @@ llvm::Value* Test::codegen() {
 }
 
 llvm::Value* Factor::codegen() {
-#ifdef DEBUG
-    std::cout << __PRETTY_FUNCTION__ << '\n';
-#endif
-
     if (std::holds_alternative<std::string>(_value)) {
         // factor -> ID
         return Builder->CreateLoad(dclSymbolTable[_procedureName][std::get<std::string>(_value)]);
@@ -330,10 +281,6 @@ llvm::Value* Factor::codegen() {
 }
 
 llvm::Value* Term::codegen() {
-#ifdef DEBUG
-    std::cout << __PRETTY_FUNCTION__ << '\n';
-#endif
-
     auto factorCodegen = _factor->codegen();
     if (_op == Term::Op::NONE) {
         // term -> factor
@@ -352,10 +299,6 @@ llvm::Value* Term::codegen() {
 }
 
 llvm::Value* Expr::codegen() {
-#ifdef DEBUG
-    std::cout << __PRETTY_FUNCTION__ << '\n';
-#endif
-
     auto termCodegen = _term->codegen();
     if (_op == Expr::Op::NONE) {
         // expr -> term
@@ -389,10 +332,6 @@ llvm::Value* Expr::codegen() {
 }
 
 std::vector<llvm::Value*> Arglist::codegen() {
-#ifdef DEBUG
-    std::cout << __PRETTY_FUNCTION__ << '\n';
-#endif
-
     std::vector<llvm::Value*> args;
     args.push_back(_expr->codegen()); // arglist -> expr
     if (_arglist) {

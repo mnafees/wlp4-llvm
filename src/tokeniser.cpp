@@ -6,6 +6,9 @@
 #include <fstream>
 #include <stdexcept>
 
+// fmt
+#include "fmt/format.h"
+
 // WLP4-LLVM
 #include "state.hpp"
 #include "token.hpp"
@@ -17,8 +20,6 @@ bool isTerminal(Symbol sym) {
 }
 
 void Tokeniser::tokenise() {
-    using namespace std::string_literals;
-
     std::ifstream fs(STATE.inputFilePath());
     if (fs.is_open()) {
         unsigned char ch = fs.get();
@@ -68,11 +69,10 @@ void Tokeniser::tokenise() {
                     while (ch != '\n' && !fs.eof()) {
                         ch = fs.get();
                     }
-                    fs.unget();
                 } else {
                     STATE.addToken(Token{Symbol::SLASH, col, line, "/"});
-                    fs.unget();
                 }
+                fs.unget();
             } else if (ch == '=') {
                 ch = fs.get();
                 if (ch == '=') {
@@ -86,7 +86,8 @@ void Tokeniser::tokenise() {
                 if (ch == '=') {
                     STATE.addToken(Token{Symbol::NE, col, line, "!="});
                 } else {
-                    throw std::logic_error("Invalid token"); // FIXME: More descriptive error message
+                    throw std::logic_error(fmt::format("invalid token {} in {}:{}:{}",
+                        ch, STATE.inputFilePath(), line, col + 1));
                 }
             } else if (ch == '<') {
                 ch = fs.get();
@@ -111,7 +112,6 @@ void Tokeniser::tokenise() {
                     constructedToken += ch;
                     ch = fs.get();
                 }
-                fs.unget();
                 if (constructedToken == "return") {
                     STATE.addToken(Token{Symbol::RETURN, col, line, constructedToken});
                 } else if (constructedToken == "if") {
@@ -137,6 +137,7 @@ void Tokeniser::tokenise() {
                 }
                 col += constructedToken.length();
                 constructedToken.clear();
+                continue;
             } else if (isdigit(ch)) {
                 constructedToken += ch;
                 ch = fs.get();
@@ -144,25 +145,27 @@ void Tokeniser::tokenise() {
                     constructedToken += ch;
                     ch = fs.get();
                 }
-                fs.unget();
                 if (constructedToken.length() > 1 && constructedToken[0] == '0') {
-                    throw std::logic_error("Numbers cannot start with zero");
+                    throw std::logic_error(fmt::format("number cannot start with zero in {}:{}:{}",
+                        STATE.inputFilePath(), line, col));
                 }
                 if (std::stol(constructedToken) > INT32_MAX) {
-                    throw std::logic_error("Number value exceeds the maximum allowed limit");
+                    throw std::logic_error(fmt::format("number value exceeds the maximum allowed limit in {}:{}:{}",
+                        STATE.inputFilePath(), line, col));
                 }
                 col += constructedToken.length();
                 STATE.addToken(Token{Symbol::NUM, col, line, constructedToken});
-
                 constructedToken.clear();
+                continue;
             } else {
-                throw std::logic_error("Unknown token");
+                throw std::logic_error(fmt::format("unknown token {} in {}:{}:{}", ch,
+                    STATE.inputFilePath(), line, col));
             }
             ch = fs.get();
             col++;
         }
     } else {
-        throw std::runtime_error("Could not open source file: "s + STATE.inputFilePath());
+        throw std::runtime_error(fmt::format("could not open input file {}", STATE.inputFilePath()));
     }
 }
 

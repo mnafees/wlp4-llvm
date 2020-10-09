@@ -1,9 +1,12 @@
 // STL
+#include <cstdio>
 #include <filesystem>
-#include <iostream>
 
 // LLVM
 #include "llvm/Support/CommandLine.h"
+
+// fmt
+#include "fmt/ostream.h"
 
 // WLP4-LLVM
 #include "parser.hpp"
@@ -47,8 +50,7 @@ int main(int argc, const char* argv[]) {
         }
         STATE.compile();
     } catch (const std::exception& e) {
-        std::cerr << "wlp4c: " << e.what() << '\n'
-                  << "compilation terminated." << '\n';
+        fmt::print(stderr, "wlp4c: {}\ncompilation terminated.\n", e.what());
         return -1;
     }
 

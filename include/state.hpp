@@ -24,9 +24,6 @@ namespace wlp4 {
 
 // Context-free grammar taken from https://www.student.cs.uwaterloo.ca/~cs241/wlp4/WLP4.html
 extern std::vector<std::pair<Symbol, std::vector<Symbol>>> CFG;
-#ifdef DEBUG
-extern std::map<Symbol, std::string> symToStr;
-#endif
 
 class State {
     State();

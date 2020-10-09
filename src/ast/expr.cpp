@@ -1,11 +1,6 @@
 // Self
 #include "ast/expr.hpp"
 
-#ifdef DEBUG
-// STL
-#include <iostream>
-#endif
-
 // WLP4-LLVM
 #include "ast/term.hpp"
 
@@ -41,10 +36,6 @@ const ExprPtr& Expr::expr() const {
 }
 
 DclType Expr::type() const {
-#ifdef DEBUG
-    std::cout << __PRETTY_FUNCTION__ << '\n';
-#endif
-
     // When expr derives expr MINUS term
     if (_op == Op::MINUS) {
         if (_leftExpr->type() == DclType::INT && _term->type() == DclType::INT) {

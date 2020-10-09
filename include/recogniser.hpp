@@ -23,13 +23,7 @@ public:
 private:
     void setupNullableRules();
     bool existsInStateList(const std::unique_ptr<Elem>& el, std::size_t stateListIdx);
-#ifdef DEBUG
-    void addToChart(std::size_t ruleIdx, std::size_t startIdx,
-        std::size_t dot, std::size_t stateListIdx, const std::string& op);
-#else
-    void addToChart(std::size_t ruleIdx, std::size_t startIdx,
-        std::size_t dot, std::size_t stateListIdx);
-#endif
+    void addToChart(std::size_t ruleIdx, std::size_t startIdx, std::size_t dot, std::size_t stateListIdx);
     void predictor(Symbol nextSym, std::size_t k, std::size_t l);
     void scanner(Symbol nextSym, std::size_t k);
     void completer(std::size_t k);

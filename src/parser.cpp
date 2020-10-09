@@ -1,10 +1,8 @@
 // Self
 #include "parser.hpp"
 
-// STL
-#ifdef DEBUG
-#include <iostream>
-#endif
+// fmt
+#include "fmt/format.h"
 
 // WLP4-LLVM
 #include "state.hpp"
@@ -21,16 +19,9 @@
 
 using namespace std::string_literals;
 
-#ifdef DEBUG
-#define PRINT_FUNC std::cout << __PRETTY_FUNCTION__ << '\n'
-#else
-#define PRINT_FUNC
-#endif
-
 #define FETCH_RULE_RHS const auto& rhs = CFG[STATE.finalChart().at(_elemIdx)->ruleIdx()].second
 #define PARSE_BEGIN(ast, sym) \
     ast##Ptr Parser::parse##ast() { \
-    PRINT_FUNC; \
     gotoCorrectRule(sym, #sym##s); \
     FETCH_RULE_RHS;
 #define PARSE_END }
@@ -42,7 +33,6 @@ std::list<std::string> procedureNames;
 namespace wlp4 {
 
 void Parser::parse() {
-    PRINT_FUNC;
     _elemIdx = STATE.finalChart().size() - 1;
     Symbol lhs;
     // first we need to populate the symbol table for all procedures
@@ -54,7 +44,7 @@ void Parser::parse() {
             procedureNames.push_front(_currProcedureName);
             --_elemIdx;
             if (procedureArgsNum.find(_currProcedureName) != procedureArgsNum.end()) {
-                throw std::runtime_error("procedure '"s + _currProcedureName + "' redeclared"s);
+                throw std::runtime_error(fmt::format("procedure {} redeclared", _currProcedureName));
             }
             procedureArgsNum[_currProcedureName] = 0;
             if (_currProcedureName == "wain") {
@@ -63,13 +53,6 @@ void Parser::parse() {
         } else if (lhs == Symbol::dcls) {
             for (auto opt = parseDcls(); opt.has_value(); opt = parseDcls()) {
                 auto dcl = parseDcl();
-#ifdef DEBUG
-                if (dcl->type() == ast::DclType::INT) {
-                    std::cout << _currProcedureName << " has declaration '" << dcl->id() << "' of type INT\n";
-                } else if (dcl->type() == ast::DclType::INT_STAR) {
-                    std::cout << _currProcedureName << " has declaration '" << dcl->id() << "' of type INT_STAR\n";
-                }
-#endif
             }
         } else if (lhs == Symbol::dcl && _currProcedureName == "wain") {
             auto dcl2 = parseDcl();
@@ -80,13 +63,6 @@ void Parser::parse() {
         } else if (lhs == Symbol::params) {
             while (!parseParams()) {
                 auto dcl = parseDcl();
-#ifdef DEBUG
-                if (dcl->type() == ast::DclType::INT) {
-                    std::cout << _currProcedureName << " has declaration '" << dcl->id() << "' of type INT\n";
-                } else if (dcl->type() == ast::DclType::INT_STAR) {
-                    std::cout << _currProcedureName << " has declaration '" << dcl->id() << "' of type INT_STAR\n";
-                }
-#endif
                 procedureArgsNum[_currProcedureName] += 1;
             }
         } else {
@@ -110,7 +86,8 @@ void Parser::parse() {
         } else if (lhs == Symbol::expr && !proc->returnExpr()) {
             auto expr = parseExpr();
             if (expr->type() != ast::DclType::INT) {
-                throw std::runtime_error("return value in procedure "s + proc->name() + " should be of type int");
+                throw std::runtime_error(fmt::format("return value in procedure {} should be of type int",
+                    proc->name()));
             }
             proc->setReturnExpr(std::move(expr));
         } else if (lhs == Symbol::statements) {
@@ -120,9 +97,6 @@ void Parser::parse() {
         } else if (lhs == Symbol::dcls) {
             for (auto opt = parseDcls(); opt.has_value(); opt = parseDcls()) {
                 auto dcl = parseDcl(&opt.value());
-#ifdef DEBUG
-                std::cout << "Value of dcl '" << dcl->id() << "' is '" << dcl->value() << "'\n";
-#endif
                 proc->addDeclaration(std::move(dcl));
             }
         } else if (lhs == Symbol::dcl && proc->isWain()) {
@@ -152,7 +126,7 @@ void Parser::gotoCorrectRule(Symbol lhs, const std::string& name) {
         --_elemIdx;
     }
     if (_elemIdx < 0) {
-        throw std::runtime_error("Could not find required "s + name);
+        throw std::runtime_error(fmt::format("Could not find required {}", name));
     }
 }
 
@@ -196,7 +170,7 @@ PARSE_END
 
 void checkValidCall(const std::string& caller, const std::string& callee) {
     if (procedureArgsNum.find(callee) == procedureArgsNum.end()) {
-        throw std::runtime_error("no such procedure named '"s + callee + "'"s);
+        throw std::runtime_error(fmt::format("no such procedure named {}", callee));
     } else if (caller == "wain" && callee == "wain") {
         throw std::runtime_error("wain may not call itself");
     }
@@ -209,8 +183,8 @@ void checkValidCall(const std::string& caller, const std::string& callee) {
         }
     }
     if (!declaredBefore) {
-        throw std::runtime_error("invalid call to procedure '"s + callee + "' from procedure '"s +
-            caller + "' since it is declared after it");
+        throw std::runtime_error(fmt::format("invalid call to procedure {} from procedure {} since it is declared after it",
+            callee, caller));
     }
 }
 
@@ -224,17 +198,16 @@ PARSE_BEGIN(Factor, Symbol::factor)
             if (rhs.size() == 3) {
                 // factor -> ID LPAREN RPAREN
                 if (procedureArgsNum[procName] != 0) {
-                    throw std::runtime_error("procedure '"s + procName + "' takes "s +
-                        std::to_string(procedureArgsNum[procName]) + " arguments, zero provided"s);
+                    throw std::runtime_error(fmt::format("procedure {} takes {} arguments, zero provided",
+                        procName, procedureArgsNum[procName]));
                 }
                 factor->setProcedureCall(procName);
             } else {
                 // factor -> ID LPAREN arglist RPAREN
                 auto arglist = parseArglist();
                 if (arglist->numArgs() != procedureArgsNum[procName]) {
-                    throw std::runtime_error("procedure '"s + procName + "' takes "s +
-                        std::to_string(procedureArgsNum[procName]) + " arguments, "s +
-                        std::to_string(arglist->numArgs()) + " provided"s);
+                    throw std::runtime_error(fmt::format("procedure {} takes {} arguments, {} provided",
+                        procName, procedureArgsNum[procName], arglist->numArgs()));
                 }
                 factor->setValue(std::move(arglist));
                 factor->setProcedureCall(procName);
@@ -315,7 +288,6 @@ PARSE_BEGIN(Arglist, Symbol::arglist)
 PARSE_END
 
 bool Parser::parseStatements() {
-    PRINT_FUNC;
     gotoCorrectRule(Symbol::statements, "Symbol::statements"s);
     FETCH_RULE_RHS;
     --_elemIdx;
@@ -390,7 +362,6 @@ PARSE_BEGIN(Test, Symbol::test)
 PARSE_END
 
 std::optional<Symbol> Parser::parseDcls() {
-    PRINT_FUNC;
     gotoCorrectRule(Symbol::dcls, "Symbol::dcls"s);
     FETCH_RULE_RHS;
     --_elemIdx;
@@ -402,7 +373,6 @@ std::optional<Symbol> Parser::parseDcls() {
 }
 
 DclPtr Parser::parseDcl(Symbol *sym) {
-    PRINT_FUNC;
     gotoCorrectRule(Symbol::dcl, "Symbol::dcl"s);
     FETCH_RULE_RHS;
     DclPtr dcl(new ast::Dcl);
@@ -428,7 +398,6 @@ DclPtr Parser::parseDcl(Symbol *sym) {
 }
 
 bool Parser::parseParams() {
-    PRINT_FUNC;
     gotoCorrectRule(Symbol::params, "Symbol::params"s);
     FETCH_RULE_RHS;
     --_elemIdx;

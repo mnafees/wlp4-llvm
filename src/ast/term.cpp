@@ -1,11 +1,6 @@
 // Self
 #include "ast/term.hpp"
 
-#ifdef DEBUG
-// STL
-#include <iostream>
-#endif
-
 // WLP4-LLVM
 #include "ast/factor.hpp"
 
@@ -34,10 +29,6 @@ void Term::setPctWith(TermPtr term) {
 }
 
 DclType Term::type() const {
-#ifdef DEBUG
-    std::cout << __PRETTY_FUNCTION__ << '\n';
-#endif
-
     if (_op == Op::NONE) {
         // The type of a term deriving factor is the same as the type of the derived factor
         return _factor->type();
