@@ -131,7 +131,6 @@ llvm::Value* IfStatement::codegen() {
     }
     auto lastFalseBB = Builder->GetInsertBlock();
 
-
     Builder->SetInsertPoint(BB);
     Builder->CreateCondBr(testCodegen, trueBB, falseBB);
 
@@ -206,6 +205,11 @@ llvm::Value* PrintlnStatement::codegen() {
             return ph;
         }
     );
+    if (!TheModule->getFunction("printf")) {
+        auto printfType = llvm::FunctionType::get(Builder->getInt32Ty(), {Builder->getInt8PtrTy()}, true);
+        auto printfFunc = llvm::Function::Create(printfType, llvm::Function::ExternalLinkage, "printf", TheModule.get());
+        printfFunc->setDSOLocal(true);
+    }
 
     std::vector<llvm::Value*> args;
     std::vector<llvm::Constant*> gepArgs;
@@ -222,6 +226,12 @@ llvm::Value* PrintlnStatement::codegen() {
 }
 
 llvm::Value* DeleteStatement::codegen() {
+    if (!TheModule->getFunction("free")) {
+        auto freeType = llvm::FunctionType::get(Builder->getVoidTy(), {Builder->getInt8PtrTy()}, false);
+        auto freeFunc = llvm::Function::Create(freeType, llvm::Function::ExternalLinkage, "free", TheModule.get());
+        freeFunc->setDSOLocal(true);
+    }
+
     auto bitcast = Builder->CreateBitCast(_expr->codegen(), Builder->getInt8PtrTy());
     Builder->CreateCall(TheModule->getFunction("free"), {bitcast});
 
@@ -261,6 +271,12 @@ llvm::Value* Factor::codegen() {
         }
         // factor -> NEW INT LBRACK expr RBRACK
         auto mulInst = Builder->CreateMul(exprCodegen, llvm::ConstantInt::get(Builder->getInt32Ty(), sizeof(int)));
+        if (!TheModule->getFunction("malloc")) {
+            auto mallocType = llvm::FunctionType::get(Builder->getInt8PtrTy(), {Builder->getInt32Ty()}, false);
+            auto mallocFunc = llvm::Function::Create(mallocType, llvm::Function::ExternalLinkage, "malloc", TheModule.get());
+            mallocFunc->addAttribute(0, llvm::Attribute::NoAlias);
+            mallocFunc->setDSOLocal(true);
+        }
         auto mallocCall = Builder->CreateCall(TheModule->getFunction("malloc"), {mulInst});
         mallocCall->addAttribute(0, llvm::Attribute::NoAlias);
         return Builder->CreateBitCast(mallocCall, Builder->getInt32Ty()->getPointerTo());
