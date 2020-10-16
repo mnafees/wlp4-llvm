@@ -37,6 +37,7 @@ public:
 
     void initLLVMCodegen();
     void compile();
+    void emitLLVM();
 
     void setInputFilePath(const char* name);
     const std::string& inputFilePath() const;

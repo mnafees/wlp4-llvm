@@ -188,6 +188,17 @@ void State::compile() {
     }
 }
 
+void State::emitLLVM() {
+    const auto llFilename = _inFile + ".ll";
+    std::error_code EC;
+    llvm::raw_fd_ostream dest(llFilename, EC, llvm::sys::fs::OF_None);
+    if (EC) {
+        throw std::runtime_error("Could not open file: "s + EC.message());
+    }
+    dest << *TheModule;
+    dest.flush();
+}
+
 void State::setInputFilePath(const char* name) {
     _inFile = name;
 }
