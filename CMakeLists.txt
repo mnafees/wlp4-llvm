@@ -1,15 +1,30 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.13.4)
 
-project(wlp4-llvm)
+project(wlp4-llvm LANGUAGES CXX)
 
-find_package(LLVM REQUIRED CONFIG)
+option(BUILD_MLIR "Build the WLP4-LLVM MLIR dialect" OFF)
 
-if (${LLVM_PACKAGE_VERSION} VERSION_LESS "8.0.0")
-    message(FATAL_ERROR "Please use LLVM versions 8.0.0 and above to build wlp4-llvm")
+if (BUILD_MLIR)
+    find_package(MLIR REQUIRED CONFIG)
+else()
+    find_package(LLVM REQUIRED CONFIG)
+endif()
+
+if (BUILD_MLIR)
+    if (${LLVM_PACKAGE_VERSION} VERSION_LESS "11.0.0")
+        message(FATAL_ERROR "Please use LLVM versions 11.0.0 and above to build wlp4-llvm")
+    endif()
+else()
+    if (${LLVM_PACKAGE_VERSION} VERSION_LESS "8.0.0")
+        message(FATAL_ERROR "Please use LLVM versions 8.0.0 and above to build wlp4-llvm")
+    endif()
 endif()
 
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
+if (BUILD_MLIR)
+    message(STATUS "Using MLIRConfig.cmake in: ${MLIR_DIR}")
+endif()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
